@@ -10,6 +10,10 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Housekeeping (2026-11-21)
+- Dev test data cleared at the TPM's request. The database is empty, with schema and migrations kept. Re-seed steps are in `docs/DEV_ENVIRONMENT.md`.
+- `docs/PROJECT_HANDBOOK.md` added: how we work, the review loop, testing rules, a map of every document and code area, accounts and access state, next steps, and how to resume in a new session.
+
 ### Deployed: Cloudflare dev (2026-11-21)
 - **Dev app live: https://giftlist-dev.mcjdonovan.workers.dev** (AR-01). Worker `giftlist-dev`, D1 `giftlist-dev` (migrations 0001–0002), secret `PIN_PEPPER` set only on Cloudflare.
 - Seeded with the Smith Family test group (`SMTH-2345`), using the same data as the prototype (`scripts/dev-seed.mjs`).

@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Dev app** | **https://giftlist-dev.mcjdonovan.workers.dev** |
-| **Status** | Live since 2026-11-21 (AR-01 approved by the TPM) |
+| **Status** | Live since 2026-11-21 (AR-01 approved by the TPM). **Test data cleared 2026-11-21 at the TPM's request:** the database is empty (schema and migrations kept). |
 | **Scope** | Section 1, Getting in: Home, Join (one way in: choose your name, PIN, "Is that you?", wrong-PIN help, hint), Start a group, Waiting, Declined, plus the temporary "inside the group" screen |
 | **Cloudflare** | Worker `giftlist-dev`, D1 database `giftlist-dev`, account owned by the TPM, Free plan (ADR-02) |
 | **Branch deployed** | `claude/sharp-knuth-889h6a-ui-workflow` |
 
-## Test data (same as the prototype, GR-8)
-Group **Smith Family**, code **`SMTH-2345`**. Invite link: https://giftlist-dev.mcjdonovan.workers.dev/j/SMTH-2345
+## Test data: currently cleared
+The dev database has **no groups or members** right now, so code `SMTH-2345` won't work until the data is re-seeded (steps below). This is the data set to bring back (the same as the prototype, GR-8):
+
+Group **Smith Family**, code **`SMTH-2345`**. Invite link once seeded: https://giftlist-dev.mcjdonovan.workers.dev/j/SMTH-2345
 
 | Member | State | PIN | Hint |
 |---|---|---|---|
@@ -20,6 +22,35 @@ Group **Smith Family**, code **`SMTH-2345`**. Invite link: https://giftlist-dev.
 | Uncle Ray | Added by the organiser, not signed in yet | (you create it) | |
 
 Anything you create in dev (new members, groups, requests) is test data and can be reset on request.
+
+## How to bring the test data back (engineer)
+The dev `PIN_PEPPER` secret was never stored outside Cloudflare, so re-seeding **rotates it**. That's fine in dev, but it invalidates any PINs created in dev since the last seed.
+
+```bash
+umask 077 && node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))" > /tmp/dev-pepper
+```
+
+```bash
+node scripts/dev-seed.mjs /tmp/dev-pepper /tmp/dev-seed.sql
+```
+
+```bash
+npx wrangler d1 execute DB --config wrangler.dev.jsonc --remote --file /tmp/dev-seed.sql
+```
+
+```bash
+npx wrangler secret put PIN_PEPPER --config wrangler.dev.jsonc < /tmp/dev-pepper
+```
+
+```bash
+rm -f /tmp/dev-pepper /tmp/dev-seed.sql
+```
+
+The Cloudflare commands need `CLOUDFLARE_API_TOKEN` (any placeholder in this cloud environment, where the proxy adds the real token) and `CLOUDFLARE_ACCOUNT_ID`.
+
+**To clear the data again:** delete the rows from every table, leaving the schema. The statement used on 2026-11-21 was: `UPDATE group_requests SET group_id = NULL; UPDATE groups SET request_id = NULL; DELETE FROM tombstones; DELETE FROM claims; DELETE FROM product_links; DELETE FROM item_visibility; DELETE FROM archive_batch_items; DELETE FROM items; DELETE FROM archive_batches; DELETE FROM member_tokens; DELETE FROM members; DELETE FROM groups; DELETE FROM group_requests; DELETE FROM rate_limits;`
+
+**Cloudflare throttling:** after many database calls in a short time, Cloudflare answers with code 971 ("Please wait"). Wait about 30 seconds and retry.
 
 ## What works differently from the prototype
 - It's the **real** server and database. What you do persists, and other browsers see it.
