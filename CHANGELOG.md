@@ -4,6 +4,10 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added: UI and workflow, branch `claude/sharp-knuth-889h6a-ui-workflow` (2026-11-21)
+- ADR-15: shadcn/ui is the design language.
+- `docs/UI_TASK_MAP.md` v0.1: 50 user tasks and system events (T-01 to T-59, S-01 to S-07), an end-to-end workflow map, an admin workflow map, the lifecycle of one gift across people, the screen map, 18 wording decisions (L1 to L18) and open points G18 to G23.
+
 ### Process (2026-11-21)
 - ADR-14: branching workflow. Step 4 work is on branch `claude/sharp-knuth-889h6a-step4-views`, cut from `2ca0f3d`.
 - The type-check label in `verify` now reads "src, tests, scripts".
