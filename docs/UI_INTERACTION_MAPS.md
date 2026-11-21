@@ -467,6 +467,7 @@ After joining, people land on a simple placeholder until "My list" (Section 2) i
 - **Flag something:** tap any element in the phone to flag a change, question or problem. The flag records the scenario, the screen, the element's text and its **C- wording ID**. "Flag the whole screen" covers layout feedback.
 - **Did it match the expected outcome?** Mark each scenario "Works as expected" or "Needs changes", with an optional note.
 - Flags and results are saved in the artifact's shared storage (`flags` and `runs`), where the engineer reads them. When a flag is resolved, it's marked **Done** with a short resolution.
+- **Choosing a scenario:** all 12 are always listed at the top (or on the left on wide screens), grouped by workflow: **Joining a group** (SC-01, 02, 03, 11), **Signing back in** (SC-04, 05, 06), **Starting a new group** (SC-09, 10) and **Mistakes and limits** (SC-07, 08, 12). Previous and Next buttons sit above the phone. *(TPM feedback: at narrower widths the list had collapsed into an easy-to-miss dropdown.)*
 - Source: `src/prototype/` (scenarios in `scenarios.ts`). Rebuild with `npm run prototype`.
 
 | Scenario | Workflow | Tasks | What triggers it | Expected outcome |

@@ -2,8 +2,14 @@
 // Each one maps to tasks in docs/UI_TASK_MAP.md and screens in docs/UI_INTERACTION_MAPS.md.
 import { addGroup, getState, newState, setState } from "./mockServer";
 
+export type Workflow = "Joining a group" | "Signing back in" | "Starting a new group" | "Mistakes and limits";
+
+/** The setup and sign-in workflows in scope for Section 1, in the order shown. */
+export const WORKFLOWS: Workflow[] = ["Joining a group", "Signing back in", "Starting a new group", "Mistakes and limits"];
+
 export type Scenario = {
   id: string;
+  workflow: Workflow;
   title: string;
   tasks: string[];
   who: string;
@@ -33,6 +39,7 @@ function smith(extra: { pending?: string[] } = {}) {
 export const SCENARIOS: Scenario[] = [
   {
     id: "SC-01",
+    workflow: "Joining a group",
     title: "Join from an invite link",
     tasks: ["T-01", "T-03"],
     who: "Morgan, a cousin who has never used the app",
@@ -51,6 +58,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-02",
+    workflow: "Joining a group",
     title: "Type a group code",
     tasks: ["T-02"],
     who: "Pat, who was told the code out loud",
@@ -67,6 +75,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-03",
+    workflow: "Joining a group",
     title: "Join under a name the organiser added",
     tasks: ["T-04"],
     who: "Grandma, whom the organiser added by name before she ever opened the app",
@@ -84,6 +93,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-04",
+    workflow: "Signing back in",
     title: "Name already taken, so sign back in",
     tasks: ["T-03", "T-05"],
     who: "Alex, who joined last year, on a new phone",
@@ -101,6 +111,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-05",
+    workflow: "Signing back in",
     title: "Sign back in on a new device, using the hint",
     tasks: ["T-05", "S-04"],
     who: "Jo, who cleared their browser and can't quite remember their PIN",
@@ -118,6 +129,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-06",
+    workflow: "Signing back in",
     title: "Too many wrong PINs",
     tasks: ["T-05", "S-02"],
     who: "Someone trying to guess Sam's PIN (or Sam, having a bad day)",
@@ -133,6 +145,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-07",
+    workflow: "Mistakes and limits",
     title: "PIN typo while joining",
     tasks: ["T-03"],
     who: "Robin, typing quickly",
@@ -148,6 +161,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-08",
+    workflow: "Mistakes and limits",
     title: "Broken invite link",
     tasks: ["T-01"],
     who: "Lee, who received a link that got cut off when it was copied",
@@ -164,6 +178,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-09",
+    workflow: "Starting a new group",
     title: "Start a new group (approved)",
     tasks: ["T-06", "T-07"],
     who: "Rosa, who wants a group for her side of the family",
@@ -182,6 +197,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-10",
+    workflow: "Starting a new group",
     title: "Start a new group (declined)",
     tasks: ["T-06", "T-08"],
     who: "Max, whose request the organiser turns down",
@@ -200,6 +216,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-11",
+    workflow: "Joining a group",
     title: "Open an invite link when already in the group",
     tasks: ["T-01"],
     who: "Sam, already signed in on this phone",
@@ -215,6 +232,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-12",
+    workflow: "Mistakes and limits",
     title: "Too many attempts from one network",
     tasks: ["S-03"],
     who: "Someone trying lots of codes from one network",
@@ -226,6 +244,9 @@ export const SCENARIOS: Scenario[] = [
     setup: () => { smith(); getState().ipFailures = 10; },
   },
 ];
+
+/** Scenarios in display order: grouped by workflow. */
+export const ORDERED: Scenario[] = WORKFLOWS.flatMap((w) => SCENARIOS.filter((s) => s.workflow === w));
 
 /** Fresh pretend server and browser for a scenario. */
 export function prepare(sc: Scenario) {

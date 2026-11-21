@@ -10,6 +10,9 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Changed: prototype scenario picker (2026-11-21)
+- All 12 setup and sign-in scenarios are always visible, grouped into 4 workflows, with Previous and Next buttons. Previously, at narrower widths the list collapsed into a dropdown and only SC-01 was obvious (TPM feedback).
+
 ### Added: clickable prototype (2026-11-21)
 - `src/prototype/`: the real Section 1 screens in a phone frame, with a pretend in-page server (same validation and messages as the Worker), 12 workflow scenarios (SC-01 to SC-12), in-line flagging (records the C- wording ID of the tapped element) and pass/fail per scenario. Published privately as an artifact, with flags stored in its shared database. `npm run prototype` rebuilds it.
 - The router can keep its path in memory (for the prototype). Theme tokens also honour an explicit `data-theme` setting.

@@ -2,13 +2,13 @@
 // with in-line flagging for TPM review.
 import * as React from "react";
 import { toast } from "sonner";
-import { Check, Copy, Flag as FlagIcon, MousePointerClick, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy, Flag as FlagIcon, MousePointerClick, RotateCcw, Trash2, X } from "lucide-react";
 import { App } from "../web/App";
 import { startMemoryRouting, currentPath } from "../web/lib/router";
 import { Button } from "../web/components/ui/button";
 import { Badge } from "../web/components/ui/badge";
 import { cn } from "../web/lib/utils";
-import { SCENARIOS, prepare, type Scenario } from "./scenarios";
+import { ORDERED, WORKFLOWS, prepare, type Scenario } from "./scenarios";
 import { organiser, getState } from "./mockServer";
 import { connectStore, identify, screenName, type Flag, type FlagKind, type Run, type Store } from "./flags";
 
@@ -29,7 +29,7 @@ function StatusLine() {
 const KIND_LABEL: Record<FlagKind, string> = { change: "Change", question: "Question", bug: "Doesn't work" };
 
 export function Prototype() {
-  const [scenario, setScenario] = React.useState<Scenario>(SCENARIOS[0]!);
+  const [scenario, setScenario] = React.useState<Scenario>(ORDERED[0]!);
   const [runKey, setRunKey] = React.useState(0);
   const [flagMode, setFlagMode] = React.useState(false);
   const [selected, setSelected] = React.useState<{ copyId: string | null; element: string; screen: string } | null>(null);
@@ -49,7 +49,7 @@ export function Prototype() {
     setRunKey((k) => k + 1);
   }, []);
 
-  React.useEffect(() => { start(SCENARIOS[0]!); }, [start]);
+  React.useEffect(() => { start(ORDERED[0]!); }, [start]);
 
   React.useEffect(() => {
     let offF = () => {}, offR = () => {};
@@ -92,6 +92,7 @@ export function Prototype() {
     if (!flagMode) screenRef.current?.querySelectorAll(".proto-picked").forEach((n) => n.classList.remove("proto-picked"));
   }, [flagMode]);
 
+  const index = ORDERED.findIndex((s) => s.id === scenario.id);
   const flagsHere = flags.filter((f) => f.scenarioId === scenario.id);
   const listed = showAll ? flags : flagsHere;
   const open = flags.filter((f) => f.status === "open").length;
@@ -113,37 +114,42 @@ export function Prototype() {
       </header>
 
       <div className="proto-grid">
-        {/* Scenario list */}
-        <nav aria-label="Scenarios" className="proto-list">
-          <label htmlFor="proto-scenario" className="sr-only">Scenario</label>
-          <select id="proto-scenario" className="proto-select" value={scenario.id}
-            onChange={(e) => start(SCENARIOS.find((s) => s.id === e.target.value)!)}>
-            {SCENARIOS.map((s) => <option key={s.id} value={s.id}>{s.id} · {s.title}</option>)}
-          </select>
-          <ol className="proto-list-items">
-            {SCENARIOS.map((s) => {
-              const r = runs[s.id]; const n = flags.filter((f) => f.scenarioId === s.id && f.status === "open").length;
-              return (
-                <li key={s.id}>
-                  <button type="button" onClick={() => start(s)} aria-current={s.id === scenario.id ? "true" : undefined}
-                    className={cn("proto-list-btn", s.id === scenario.id && "is-current")}>
-                    <span className="text-muted-foreground font-mono text-xs">{s.id}</span>
-                    <span className="min-w-0 flex-1 text-left text-sm leading-snug">{s.title}</span>
-                    <span className="flex shrink-0 items-center gap-1">
-                      {n > 0 && <span className="proto-pill proto-pill-flag" title={`${n} open flag(s)`}>{n}</span>}
-                      {r && <span className={cn("proto-pill", r.result === "pass" ? "proto-pill-pass" : "proto-pill-fail")}>{r.result === "pass" ? "OK" : "Fix"}</span>}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+        {/* Workflow picker: every setup and sign-in scenario, always visible, grouped by workflow */}
+        <nav aria-label="Workflows and scenarios" className="proto-list">
+          <p className="proto-h3">Choose a workflow scenario ({ORDERED.length})</p>
+          {WORKFLOWS.map((w) => (
+            <div key={w} className="proto-group">
+              <h2 className="proto-group-title">{w}</h2>
+              <ul className="proto-group-items">
+                {ORDERED.filter((s) => s.workflow === w).map((s) => {
+                  const r = runs[s.id]; const n = flags.filter((f) => f.scenarioId === s.id && f.status === "open").length;
+                  return (
+                    <li key={s.id}>
+                      <button type="button" onClick={() => start(s)} aria-current={s.id === scenario.id ? "true" : undefined}
+                        className={cn("proto-list-btn", s.id === scenario.id && "is-current")}>
+                        <span className="text-muted-foreground font-mono text-xs">{s.id}</span>
+                        <span className="min-w-0 flex-1 text-left text-sm leading-snug">{s.title}</span>
+                        <span className="flex shrink-0 items-center gap-1">
+                          {n > 0 && <span className="proto-pill proto-pill-flag" title={`${n} open flag(s)`}>{n}</span>}
+                          {r && <span className={cn("proto-pill", r.result === "pass" ? "proto-pill-pass" : "proto-pill-fail")}>{r.result === "pass" ? "OK" : "Fix"}</span>}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         {/* Phone */}
         <section aria-label="Phone preview" className="proto-stage">
           <div className="proto-stage-bar">
-            <span className="text-muted-foreground min-w-0 truncate font-mono text-xs" title="Current address in the app">{currentPath()}</span>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" onClick={() => start(ORDERED[(index - 1 + ORDERED.length) % ORDERED.length]!)} aria-label="Previous scenario"><ChevronLeft /></Button>
+              <span className="text-sm font-medium tabular-nums">{scenario.id} · {index + 1} of {ORDERED.length}</span>
+              <Button size="sm" variant="outline" onClick={() => start(ORDERED[(index + 1) % ORDERED.length]!)} aria-label="Next scenario"><ChevronRight /></Button>
+            </div>
             <div className="flex gap-2">
               <Button size="sm" variant={flagMode ? "default" : "outline"} onClick={() => setFlagMode((f) => !f)} aria-pressed={flagMode}>
                 <MousePointerClick />{flagMode ? "Flagging: tap an element" : "Flag something"}
@@ -151,6 +157,7 @@ export function Prototype() {
               <Button size="sm" variant="ghost" onClick={() => start(scenario)}><RotateCcw />Restart</Button>
             </div>
           </div>
+          <p className="text-muted-foreground min-w-0 truncate font-mono text-xs" title="Current address in the app">App address: {currentPath()}</p>
           <div className={cn("proto-phone", flagMode && "is-flagging")}>
             <div className="proto-screen" ref={screenRef}>
               <App key={runKey} />
@@ -189,7 +196,7 @@ function ScenarioCard({ sc }: { sc: Scenario }) {
   };
   return (
     <section className="proto-card">
-      <p className="text-muted-foreground font-mono text-xs">{sc.id} · {sc.tasks.join(", ")}</p>
+      <p className="text-muted-foreground text-xs"><span className="font-mono">{sc.id}</span> · {sc.workflow} · <span className="font-mono">{sc.tasks.join(", ")}</span></p>
       <h2 className="text-base font-semibold text-balance">{sc.title}</h2>
       <dl className="proto-dl">
         <dt>Who</dt><dd>{sc.who}</dd>
