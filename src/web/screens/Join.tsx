@@ -22,6 +22,7 @@ export function Join({ code, initialMode }: { code: string; initialMode: Mode })
   const [state, setState] = React.useState<"loading" | "ready" | "bad" | "rate">(lookup ? "ready" : "loading");
   const [rateWait, setRateWait] = React.useState(0);
   const [mode, setMode] = React.useState<Mode>(initialMode);
+  React.useEffect(() => setMode(initialMode), [initialMode]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -51,7 +52,7 @@ export function Join({ code, initialMode }: { code: string; initialMode: Mode })
 
   const switchMode = (m: Mode) => {
     setMode(m);
-    history.replaceState(null, "", m === "recover" ? `/j/${code}/back` : `/j/${code}`);
+    navigate(m === "recover" ? `/j/${code}/back` : `/j/${code}`, true);
   };
 
   return (

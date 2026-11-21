@@ -3,7 +3,7 @@ import { Toaster } from "./components/ui/sonner";
 import { Card, CardContent } from "./components/ui/card";
 import { Shell } from "./components/common";
 import { api } from "./lib/api";
-import { lastGroup, navigate, parse, usePath } from "./lib/router";
+import { lastGroup, navigate, parse, query, usePath } from "./lib/router";
 import { Home } from "./screens/Home";
 import { Join } from "./screens/Join";
 import { NewGroup } from "./screens/NewGroup";
@@ -14,7 +14,7 @@ export function App() {
   const route = parse(path);
   return (
     <>
-      {route.name === "home" && <HomeGate />}
+      {route.name === "home" && <HomeGate key={path} forceHome={query(path).has("add")} />}
       {route.name === "join" && <Join key={route.code} code={route.code} initialMode={route.mode} />}
       {route.name === "new" && <NewGroup />}
       {route.name === "group" && <GroupPlaceholder key={route.groupId} groupId={route.groupId} />}
@@ -27,8 +27,7 @@ export function App() {
  * "/" opens the last group used if this browser is in one (UI_INTERACTION_MAPS §1.0),
  * or the waiting screen if a group request is open. "/?add=1" always shows Home.
  */
-function HomeGate() {
-  const forceHome = new URLSearchParams(location.search).has("add");
+function HomeGate({ forceHome }: { forceHome: boolean }) {
   const [ready, setReady] = React.useState(forceHome);
   React.useEffect(() => {
     if (forceHome) return;

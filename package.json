@@ -16,7 +16,8 @@
     "audit": "npm audit --omit=optional",
     "verify": "node scripts/verify.mjs",
     "e2e": "playwright test --project=phone --project=desktop",
-    "screens": "playwright test --project=screens"
+    "screens": "playwright test --project=screens",
+    "prototype": "node scripts/build-prototype.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.5",

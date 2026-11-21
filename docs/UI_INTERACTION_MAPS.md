@@ -460,6 +460,30 @@ After joining, people land on a simple placeholder until "My list" (Section 2) i
 | R1-3 | Show the PIN numbers; PINs are exactly 4 numbers; add an optional hint | Digits visible; 4 boxes; requirement changed (FR-1.4, NFR-4); hint added (G29) to Join and Start a group, with "Show my hint" on Sign back in | §1.2–§1.4; C-JOIN-11, C-JOIN-26–28, C-REC-13–15; migration 0002 |
 | R1-4 | Frames 03–05: dropdown labelled "Have you already been added?"; only list people who haven't signed in for the first time | The name buttons are now a dropdown (plus "No, I'm new here") showing only not-yet-joined names. The requirement is recorded in FR-2.2. | §1.2; C-JOIN-06, C-JOIN-07, C-JOIN-24, C-JOIN-25 |
 
+## 1.6c Clickable prototype and workflow scenarios
+
+**Prototype:** https://claude.ai/artifact/MXW1Uugh9HiZn4ffTukGE7 (private to the TPM). It runs the **real** Section 1 screens in a phone frame against a pretend server inside the page. The pretend server uses the same validation code and messages as the real one. Nothing is sent to Cloudflare.
+
+- **Flag something:** tap any element in the phone to flag a change, question or problem. The flag records the scenario, the screen, the element's text and its **C- wording ID**. "Flag the whole screen" covers layout feedback.
+- **Did it match the expected outcome?** Mark each scenario "Works as expected" or "Needs changes", with an optional note.
+- Flags and results are saved in the artifact's shared storage (`flags` and `runs`), where the engineer reads them. When a flag is resolved, it's marked **Done** with a short resolution.
+- Source: `src/prototype/` (scenarios in `scenarios.ts`). Rebuild with `npm run prototype`.
+
+| Scenario | Workflow | Tasks | What triggers it | Expected outcome |
+|---|---|---|---|---|
+| SC-01 | Join from an invite link | T-01, T-03 | Someone taps the family's invite link for the first time | Inside the group, with a welcome message |
+| SC-02 | Type a group code | T-02 | Someone was told the code out loud | The Join screen for that group |
+| SC-03 | Join under a name the organiser added | T-04 | A pre-added person opens the invite | Joined as that name; it leaves the dropdown |
+| SC-04 | Name already taken, so sign back in | T-03, T-05 | An existing member tries to join again on a new phone | Back in via "Sign back in" |
+| SC-05 | Sign back in on a new device, using the hint | T-05, S-04 | The browser forgot them; they use "Show my hint" | Back in the group |
+| SC-06 | Too many wrong PINs | T-05, S-02 | 5 wrong PINs for one name | Locked for 15 minutes; Sign in disabled |
+| SC-07 | PIN typo while joining | T-03 | The two PINs don't match | Error; nothing sent (frame 06) |
+| SC-08 | Broken invite link | T-01 | A cut-off or mistyped link | "This invite didn't work" → enter a code (frame 07) |
+| SC-09 | Start a new group (approved) | T-06, T-07 | No code; asks for a group; the organiser approves | Moved into the new group |
+| SC-10 | Start a new group (declined) | T-06, T-08 | The organiser declines | Declined message; can send a new request |
+| SC-11 | Open an invite when already in the group | T-01 | A member taps an old invite link | Straight in, "You're already in…" |
+| SC-12 | Too many attempts from one network | S-03 | 10 failed attempts from one network | Rate-limit alert; Continue disabled |
+
 ## 1.7 Tests for this section
 
 These are added to TEST_PLAN.md when the section is approved.
