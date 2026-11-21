@@ -4,6 +4,10 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Process (2026-11-21)
+- ADR-14: branching workflow. Step 4 work is on branch `claude/sharp-knuth-889h6a-step4-views`, cut from `2ca0f3d`.
+- The type-check label in `verify` now reads "src, tests, scripts".
+
 ### Added: planning phase (2026-11-21)
 - `docs/PROJECT_BRIEF.md` v1.0: requirements, with questions Q1 to Q31 resolved.
 - `docs/GLOSSARY.md`: terms, field catalogue, lifecycles, what each viewer sees, decisions G1 to G17.

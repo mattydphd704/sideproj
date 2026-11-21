@@ -36,7 +36,7 @@ function record(id, name, ok, detail) {
 // ENV-03: type check.
 {
   const r = run("npx", ["tsc", "--noEmit", "-p", "tsconfig.json"]);
-  record("ENV-03", "Type check (src)", r.ok, r.ok ? "no type errors" : r.out);
+  record("ENV-03", "Type check (src, tests, scripts)", r.ok, r.ok ? "no type errors" : r.out);
 }
 // ENV-04: production build.
 {

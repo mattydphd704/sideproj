@@ -72,7 +72,7 @@ npm run verify
 |---|---|---|---|
 | ENV-01 | Clean install from the lockfile (`npm ci`) | The exact pinned packages install, with checksums verified (ADR-13) | ✅ |
 | ENV-02 | Security audit (`npm audit`) | No known vulnerabilities in our dependencies | ✅ |
-| ENV-03 | Type check | No type errors in app code | ✅ |
+| ENV-03 | Type check | No type errors in app code, tests or scripts | ✅ |
 | ENV-04 | Production build | The web app and Worker build | ✅ |
 | ENV-05 | Migrations apply to an empty database | The schema installs cleanly with Cloudflare's own tool | ✅ |
 | ENV-06 | Automated test suite | All Vitest tests pass | ✅ |

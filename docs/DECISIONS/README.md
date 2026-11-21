@@ -17,3 +17,4 @@ Each record captures one decision: its context, the decision itself and its cons
 | [ADR-11](ADR-11.md) | Account ownership and deploy rights | Accepted | 2026-11-21 |
 | [ADR-12](ADR-12.md) | Schema conventions | Accepted | 2026-11-21 |
 | [ADR-13](ADR-13.md) | Dependency supply-chain policy | Accepted | 2026-11-21 |
+| [ADR-14](ADR-14.md) | Branching workflow | Accepted | 2026-11-21 |
