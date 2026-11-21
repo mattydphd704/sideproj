@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.6, ready for TPM approval |
+| **Status** | DRAFT v0.7, awaiting TPM review |
 | **Last updated** | 2026-11-21 |
 | **Phase** | Outline (no architecture or code yet) |
 
@@ -15,6 +15,7 @@
 | v0.4 | Q19, Q3, Q6, Q7 resolved. Q8: item modes (Exact product / Giver's choice), multiple links per item and auto-fill (a spike, PR-002). Q9: partial claims tracked as PR-001. Q10: claim, unclaim and purchased. Q11: claims kept and changes flagged. Created `GLOSSARY.md` and `PR_TRACKER.md`. |
 | v0.5 | Q12, Q13, Q14, Q22, Q23, Q24, Q25 resolved. Created `BACKLOG.md`. |
 | v0.6 | Q15, Q16, Q18, Q26 resolved. Added the admin "expire lists" action and unlimited item stars. Nothing blocks architecture except TPM approval. |
+| v0.7 | Added fair-share alerts (FR-6). Replaced "expire lists" with soft delete, permanent delete and archive (FR-7). Groups and PINs persist. Auto-archive after 12 months. Q27 resolved. New questions Q28 to Q31. |
 
 ## 1. Problem
 
@@ -58,8 +59,8 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - FR-2.4: The admin can approve or decline "Create new group" requests from a queue.
 - FR-2.5: The admin can also be an ordinary member of a group, with their own list and claims.
 - FR-2.6: The admin can reset a member's PIN, for example if they've forgotten it.
-- FR-2.8: **Expire lists.** The admin can expire every list in a group, for example after the holidays. The group, its members, their PINs and the group code stay. *(See Q27 on whether items are deleted or archived.)*
-- FR-2.9: **Data retention is controlled by the admin.** Nothing expires automatically.
+- FR-2.8: **Archive lists.** The admin can archive every list in a group at once. See FR-7.3.
+- FR-2.9: **Groups and PINs persist indefinitely in v1.** Lifecycle rules are in the backlog (B-010).
 - FR-2.7: v1 has a single global admin. Per-group admins are in the backlog (B-001).
 - Not in v1: rotating a group code, renaming a group, deleting a group from the UI. These are in `BACKLOG.md`.
 
@@ -86,7 +87,41 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - FR-5.4: A claimer can **unclaim** an item, which makes it available again.
 - FR-5.5: A claimer can mark a claimed item as **purchased**. Only the claimer can see this flag. Other members see only "Claimed by <name>", and the recipient sees nothing.
 - FR-5.6: One claim per item in v1. Partial claims for items with a quantity are being tested separately as **PR-001**.
-- FR-5.7: If the owner **edits** a claimed item, the claim stays and the claimer sees an **updated** flag. If the owner **deletes** a claimed item, the claimer's Claimed list shows it as **removed by owner**.
+- FR-5.7: If the owner **edits** a claimed item, the claim stays and the claimer sees an **updated** flag. If the owner **deletes** a claimed item, see FR-7.
+
+### FR-6: Fair-share alerts
+The goal is to stop one member from claiming most of a person's list and leaving nothing for everyone else.
+
+- FR-6.1: **Waiting givers.** For a recipient R, these are the members of R's group who could give to R but haven't claimed anything for R yet. That excludes R, the current claimer, and *(proposed, Q28)* pending members who have never visited.
+- FR-6.2: **Available items.** These are R's items that are unclaimed, not deleted and not archived.
+- FR-6.3: **Floating threshold.** A claim **breaches fair share** if, once it's made, either of these is true:
+  - **(a)** the number of available items is less than the number of waiting givers, multiplied by a buffer (default **1.0**, a setting the admin can change); or
+  - **(b)** any waiting giver would have **no** available items they're allowed to see, because of item visibility.
+
+  The threshold floats: it's recalculated from the current list size, group size and claims every time it's checked. *Example: Sam has 6 items and 4 other members. Alex has claimed 2 and the other 3 haven't claimed anything. If Alex claims a 3rd item, 3 items are left for 3 waiting givers, which is fine. If Alex claims a 4th, 2 items are left for 3 givers, which breaches fair share and triggers the alert.*
+- FR-6.4: **Alert on claim.** Before a claim that breaches fair share goes through, the claimer sees a warning, for example: *"You've claimed 4 of Sam's 6 items. 3 other people haven't picked anything for Sam yet. Consider leaving more for them."* The claimer can **Claim anyway** or **Cancel**. This is a warning, not a block *(Q29)*.
+- FR-6.5: **Ongoing nudge.** While the condition holds, the claimer's Claimed list shows a banner on that recipient's section suggesting they release some claims, with an **Unclaim** button on each item. The condition can start holding later, for example when a new member joins, the owner deletes items, or someone else claims.
+- FR-6.6: The surprise rule still applies. The recipient never sees fair-share information.
+
+### FR-7: Deleting, archiving and restoring items
+*"The list is the list."* Members never delete their whole list. They manage individual items.
+
+- FR-7.1: **Soft delete.** When the owner deletes an item:
+  - For the owner, it moves to a **Deleted** section at the bottom of their list, greyed out, for up to **90 days**. The owner can **Restore** it to the active list, or **Permanently delete** it.
+  - For other members, it shows greyed out and flagged **"Deleted by owner"**, and can't be claimed.
+  - An existing claim **stays** and is flagged **"Deleted by owner"** on the claimer's Claimed list. If the owner restores the item, the claim is still there, and the owner still can't see it.
+- FR-7.2: **Permanent delete** happens when the owner chooses it, or automatically after 90 days in Deleted. *Recommended logic:*
+  - The item disappears from the owner's list and from every other member's dashboard.
+  - **No claim:** the item, its links and its visibility settings are removed completely.
+  - **Has a claim:** the claimer keeps a read-only **tombstone** on their Claimed list, made of the item title and recipient, marked *"No longer on Sam's list"*. They may already have bought it. The claimer can **Dismiss** it. All other item data, including links, is removed.
+  - It can't be undone.
+- FR-7.3: **Archive.** When the admin archives a group's lists, every current item in every list in that group, deleted ones included, moves to an **Archived** section.
+  - Members see these items labelled **"Archived"**. They're read-only and can't be claimed.
+  - Lists stay in place and members keep adding new items as usual.
+  - Claims on archived items are frozen, and they appear under "Archived" on the claimer's Claimed list.
+  - *(Proposed, Q30)* An owner can **Re-add** an archived item, which creates a fresh, unclaimed copy on their active list.
+- FR-7.4: **Auto-archive.** The lists in a group are archived automatically **12 months** after the group's last archive. For a group that has never been archived, the clock starts when the group is created. *(Clock basis: Q31.)*
+- FR-7.5: How long claimed items, tombstones and archived items are kept is decided later (B-009).
 
 ## 5. Non-functional requirements
 
@@ -97,6 +132,8 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - NFR-5: **Server-side enforcement.** Claim data is never sent to an item's owner, and restricted items are never sent to members they're hidden from. Hiding them in the UI is not enough.
 - NFR-6: The app stores as little personal data as possible: display names, item details and links only. No email addresses, phone numbers or passwords.
 - NFR-7: The admin area is protected by a secret credential that is separate from member PINs.
+- NFR-9: Fair-share checks and claims run in the same database transaction, so the warning reflects the true state at the moment of claiming.
+- NFR-10: Scheduled jobs handle permanent deletion after 90 days and auto-archive after 12 months. These jobs must be idempotent: running one twice has the same effect as running it once.
 - NFR-8: Separate dev/test and prod environments. Nothing is deployed to prod without TPM sign-off.
 
 ## 6. Out of scope for v1
@@ -132,7 +169,7 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 | Q8 | Item fields? | **Exact product and Giver's choice modes, multiple links, auto-fill.** The auto-fill spike is PR-002, and fields are tracked in `GLOSSARY.md`. |
 | Q9 | Partial claims? | **To be tested separately as PR-001.** One claim per item in the meantime. |
 | Q10 | Unclaim and purchased? | **Claim, unclaim and mark as purchased.** |
-| Q11 | Owner edits or deletes a claimed item? | **The claim stays, and the claimer sees the change flagged.** |
+| Q11 | Owner edits or deletes a claimed item? | **The claim stays, and the claimer sees the change flagged.** Deletion is covered in FR-7. |
 | Q12 | Duplicate display names? | **Must be unique within a group.** |
 | Q14 | Dashboard freshness? | **Auto-refresh about every 30 seconds and when the page regains focus.** Claims are conflict-safe. |
 | Q13 | What do members an item is hidden from see? | **Nothing.** The item is fully hidden. |
@@ -141,7 +178,8 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 | Q24 | Who sees the purchased flag? | **Only the claimer.** |
 | Q15 | Can members suggest gifts for others? | **Moved to the backlog (B-008).** |
 | Q16 | Expected scale? | **Small: fewer than 100 groups, fewer than 50 members each.** |
-| Q18 | How long is data kept? | **The admin decides.** The admin can keep a group active and expire all of its lists (FR-2.8). |
+| Q18 | How long is data kept? | **Groups and PINs persist.** The admin can archive lists, and lists auto-archive after 12 months. Cleanup rules are in the backlog (B-009, B-010). |
+| Q27 | Delete or archive? | **Soft delete for 90 days, then permanent delete with a tombstone for claimers. Archive is a separate action** (FR-7). |
 | Q26 | Item priority? | **Stars.** A member can star as many items as they want. |
 | Q25 | What does "PR" mean? | **Both.** Each candidate feature gets a PR-nnn ID in `PR_TRACKER.md` and is delivered as its own GitHub pull request, linked from the tracker. The engineer opens a pull request only when the TPM asks. |
 
@@ -150,7 +188,10 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 | # | Question | Engineer's assumption, pending TPM confirmation |
 |---|---|---|
 | Q17 | Stack, hosting, budget, domain, timeline? | The engineer proposes options in `ARCHITECTURE.md`, sized for small scale (Q16). |
-| Q27 | When the admin **expires the lists** in a group, are items deleted or archived? | Items and claims are **permanently deleted** after a confirmation prompt. Members, PINs, the group code and the group itself stay. |
+| Q28 | Do pending members (added by the admin but never visited) count as waiting givers? | **No.** Only members who have joined count. Otherwise an inactive relative would trigger warnings forever. |
+| Q29 | Fair-share alert: a warning, or a hard block? | **Warning**, with "Claim anyway". The buffer defaults to 1.0. |
+| Q30 | Can owners re-add archived items? | **Yes.** It creates a fresh, unclaimed copy. |
+| Q31 | When does the 12-month auto-archive clock start? | **From the group's last archive, or from group creation if it has never been archived.** The alternative is per item, 12 months after each item was added. |
 
 ## 9. Success criteria for v1
 
@@ -160,11 +201,13 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 4. No two members can claim the same item, including under simultaneous clicks.
 5. A list's owner never receives claim information about their own items. This is verified at the API level.
 6. Restricted items are never sent to members they're hidden from. This is verified at the API level.
-7. Everything passes in dev/test, then gets TPM review, before any prod deploy.
+7. A claim that breaches fair share always shows the warning, including in tests with mixed item visibility.
+8. Soft-deleted items can be restored within 90 days and are permanently deleted after that, with tombstones kept for claimers.
+9. Everything passes in dev/test, then gets TPM review, before any prod deploy.
 
 ## 10. Next steps
 
-1. TPM confirms the Q27 assumption and **approves this brief**.
+1. TPM answers Q28 to Q31 and **approves this brief**.
 2. Engineer drafts `ARCHITECTURE.md`, including stack and hosting options for Q17, and any access requests.
 3. Engineer drafts `DATA_SCHEMA.md`, then `DECISIONS/`, `BUGS.md` (or GitHub Issues) and `CHANGELOG.md`.
 4. No code until the TPM has approved the architecture and schema.

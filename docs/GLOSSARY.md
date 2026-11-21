@@ -4,7 +4,7 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 
 | | |
 |---|---|
-| **Last updated** | 2026-11-21 (brief v0.6) |
+| **Last updated** | 2026-11-21 (brief v0.7) |
 
 ## Roles and access
 
@@ -43,7 +43,15 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 | **Auto-fill** | The app reads a product link and pre-fills details such as product name, price, size and colour. The owner can then edit them. *Scope and method are subject to a test spike: see "Item fields" below.* |
 | **Visibility** | Who can see an item: **everyone** in the group, or **only specific members**. Members an item is hidden from see nothing of it, not even a placeholder, and the server never sends it to them. |
 | **Star** | A marker an owner puts on an item to show it's important to them. Any number of items can be starred. |
-| **Expire lists** | An admin action that clears every list in a group while keeping the group, its members and their PINs. Used to reset between occasions. |
+| **Active list** | The live part of a member's list: items that aren't deleted or archived. |
+| **Deleted (soft delete)** | An item the owner has deleted. It's greyed out at the bottom of the owner's list for up to 90 days and can be restored. Other members see it flagged "Deleted by owner" and can't claim it. |
+| **Deleted by owner** | The flag other members, and the claimer, see on a soft-deleted item. Replaces the earlier "Removed by owner". |
+| **Restore** | Moving a soft-deleted item back to the active list. Any existing claim is kept. |
+| **Permanent delete** | Removing an item for good, either by the owner or automatically after 90 days in Deleted. Can't be undone. |
+| **Tombstone** | What's left on a claimer's Claimed list after a claimed item is permanently deleted: the title and recipient, marked "No longer on <name>'s list". The claimer can dismiss it. |
+| **Archive / Archived** | Moving every current item in a group's lists into a read-only, unclaimable "Archived" section. Done by the admin, or automatically. Lists stay in place for new items. |
+| **Auto-archive** | Archiving that happens automatically 12 months after a group's last archive, or after its creation if it has never been archived. |
+| **Re-add** | Creating a fresh, unclaimed copy of an archived item on the owner's active list. |
 | **Dashboard** | The main view: every other member's visible items, grouped by member. |
 
 ## Claims
@@ -59,7 +67,13 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 | **Greyed out** | How a claimed item appears to other members, along with the claimer's name. Never shown to the recipient. |
 | **Surprise rule** | An item's owner never receives any claim information about it. The server enforces this. |
 | **Updated flag** | A marker shown to the claimer when the owner edits an item after it was claimed. |
-| **Removed by owner** | The state shown on a claimer's Claimed list when the owner deletes an item that was claimed. |
+| **Fair share** | The rule that one member shouldn't claim so many of a person's items that others have nothing left to give that person. |
+| **Waiting giver** | For a recipient, a joined member of the group (not the recipient and not the claimer) who hasn't claimed anything for that recipient yet. |
+| **Available item** | An item that is unclaimed, not deleted and not archived. |
+| **Fair-share threshold** | A floating limit that's breached when the available items number fewer than waiting givers × buffer, or when any waiting giver has no available item they're allowed to see. |
+| **Fair-share buffer** | The multiplier in the threshold. Defaults to 1.0, and the admin can change it. |
+| **Fair-share alert** | The warning shown before a claim that breaches the threshold, with "Claim anyway" or "Cancel". |
+| **Fair-share nudge** | The banner on a claimer's Claimed list while they're over the threshold for a recipient, suggesting they unclaim some items. |
 
 ## Item fields (working list, to be refined by the auto-fill test spike)
 
