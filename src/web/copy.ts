@@ -43,6 +43,9 @@ export const COPY = {
   "C-JOIN-26": "PIN hint (optional)",
   "C-JOIN-27": "A reminder only you will understand. Don't include your PIN.",
   "C-JOIN-28": "Your hint can't include your PIN.",
+  "C-JOIN-29": "Choose your name, or \"No, I'm new here\".",
+  "C-JOIN-30": "PINs match.",
+  "C-JOIN-31": "Enter your PIN again.",
   "C-ERR-NAME-TAKEN": "Someone in this group already uses that name. If it's you, sign back in instead.",
   "C-ERR-NAME-TAKEN-LINK": "Sign back in",
 

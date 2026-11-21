@@ -1,14 +1,14 @@
 // §1.2 Join (T-01, T-03, T-04) and §1.3 Sign back in (T-05) on one screen.
 import * as React from "react";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { ErrorAlert, FieldError, Helper, PinField, RateLimitAlert, Shell, clockTime, hintHasPin, toastUnexpected, validPin } from "../components/common";
+import { NativeSelect } from "../components/ui/native-select";
+import { PinBlock, firstPinProblem, type PinValues } from "../components/PinBlock";
+import { ErrorAlert, FieldError, Helper, PinField, RateLimitAlert, Shell, clockTime, toastUnexpected, validPin } from "../components/common";
 import { t } from "../copy";
 import { api, ApiError, type Lookup } from "../lib/api";
 import { lastGroup, navigate } from "../lib/router";
@@ -18,7 +18,12 @@ type Mode = "join" | "recover";
 
 export function Join({ code, initialMode }: { code: string; initialMode: Mode }) {
   const clean = code.toUpperCase().replace(/[\s-]/g, "");
-  const [lookup, setLookup] = React.useState<Lookup | null>(lookupCache.get(clean) ?? null);
+  // Use the copy Home just fetched once, then drop it, so a later visit never sees stale data (BUG-004).
+  const [lookup, setLookup] = React.useState<Lookup | null>(() => {
+    const cached = lookupCache.get(clean) ?? null;
+    lookupCache.delete(clean);
+    return cached;
+  });
   const [state, setState] = React.useState<"loading" | "ready" | "bad" | "rate">(lookup ? "ready" : "loading");
   const [rateWait, setRateWait] = React.useState(0);
   const [mode, setMode] = React.useState<Mode>(initialMode);
@@ -92,37 +97,37 @@ function JoinForm({ code, lookup, onRecover }: { code: string; lookup: Lookup; o
   const groupName = lookup.group.name;
   const pending = lookup.members.filter((m) => m.pending);
   const NEW = "__new__";
-  const [added, setAdded] = React.useState<string>(""); // "" = not answered, NEW = "No, I'm new here", else a pre-added name
+  // GR-2: "Have you already been added?" is always shown. With nobody waiting, "No, I'm new here" is pre-chosen (G32).
+  const [added, setAdded] = React.useState<string>(pending.length === 0 ? NEW : "");
   const [typedName, setTypedName] = React.useState("");
+  const [nameLeft, setNameLeft] = React.useState(false);
   const name = added && added !== NEW ? added : typedName;
-  const [pin, setPin] = React.useState("");
-  const [pin2, setPin2] = React.useState("");
-  const [hint, setHint] = React.useState("");
-  const [errors, setErrors] = React.useState<{ name?: React.ReactNode; pin?: string; pin2?: string; hint?: string }>({});
+  const [pinValues, setPinValues] = React.useState<PinValues>({ pin: "", pin2: "", hint: "" });
+  const [submitted, setSubmitted] = React.useState(false);
+  const [server, setServer] = React.useState<{ name?: React.ReactNode; hint?: string }>({});
   const [rateWait, setRateWait] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
-  const nameRef = React.useRef<HTMLInputElement>(null);
+
+  const addedError = submitted && added === "" ? t("C-JOIN-29") : undefined;
+  const nameError = server.name ?? ((nameLeft || submitted) && added === NEW && !typedName.trim() ? t("C-JOIN-18") : undefined);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const next: typeof errors = {};
-    if (!name.trim()) next.name = t("C-JOIN-18");
-    if (!validPin(pin)) next.pin = t("C-JOIN-11");
-    else if (pin !== pin2) next.pin2 = t("C-JOIN-17");
-    if (!next.pin && hintHasPin(hint, pin)) next.hint = t("C-JOIN-28");
-    setErrors(next);
-    if (next.name) { nameRef.current?.focus(); return; }
-    if (next.pin || next.pin2) { setPin2(""); return; }
-    if (next.hint) { document.getElementById("hint")?.focus(); return; }
+    setSubmitted(true);
+    // GR-7: focus the first field with a problem.
+    if (added === "") { document.getElementById("added")?.focus(); return; }
+    if (added === NEW && !typedName.trim()) { document.getElementById("name")?.focus(); return; }
+    const p = firstPinProblem(pinValues);
+    if (p) { document.getElementById(p)?.focus(); return; }
     setBusy(true);
     try {
-      const r = await api.join(code, name, pin, hint.trim() || undefined);
+      const r = await api.join(code, name, pinValues.pin, pinValues.hint.trim() || undefined);
       lastGroup.set(r.group.id);
       toast.success(t("C-JOIN-19", { groupName: r.group.name }));
       navigate(`/g/${r.group.id}`, true);
     } catch (err) {
       if (err instanceof ApiError && err.code === "name_taken") {
-        setErrors({
+        setServer({
           name: (
             <>
               {t("C-ERR-NAME-TAKEN")}{" "}
@@ -130,8 +135,8 @@ function JoinForm({ code, lookup, onRecover }: { code: string; lookup: Lookup; o
             </>
           ),
         });
-        nameRef.current?.focus();
-      } else if (err instanceof ApiError && err.code === "validation") setErrors(/hint/i.test(err.message) ? { hint: err.message } : { name: err.message });
+        document.getElementById(added === NEW ? "name" : "added")?.focus();
+      } else if (err instanceof ApiError && err.code === "validation") setServer(/hint/i.test(err.message) ? { hint: err.message } : { name: err.message });
       else if (err instanceof ApiError && err.code === "rate_limited") setRateWait(err.retryAfterSec);
       else toastUnexpected(err);
     } finally {
@@ -149,45 +154,36 @@ function JoinForm({ code, lookup, onRecover }: { code: string; lookup: Lookup; o
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-            {/* Only people the organiser added who haven't signed in for the first time yet (TPM UI review round 1). */}
-            {pending.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="added">{t("C-JOIN-06")}</Label>
-                <Select value={added} onValueChange={(v) => { setAdded(v); setErrors({}); if (v !== NEW) setTimeout(() => document.getElementById("pin")?.focus(), 0); }}>
-                  <SelectTrigger id="added" aria-describedby="added-help"><SelectValue placeholder={t("C-JOIN-24")} /></SelectTrigger>
-                  <SelectContent>
-                    {pending.map((m) => <SelectItem key={m.displayName} value={m.displayName}>{m.displayName}</SelectItem>)}
-                    <SelectItem value={NEW}>{t("C-JOIN-25")}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Helper id="added-help">{t("C-JOIN-07")}</Helper>
-              </div>
-            )}
-            {(pending.length === 0 || added === NEW || added === "") && (
+            {/* 1. Always shown (GR-2). Lists only people the organiser added who haven't signed in yet (FR-2.2). */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="added">{t("C-JOIN-06")}</Label>
+              <NativeSelect id="added" value={added} required aria-invalid={!!addedError || undefined}
+                aria-describedby={addedError ? "added-error" : "added-help"}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAdded(v); setServer({});
+                  setTimeout(() => document.getElementById(v === NEW ? "name" : "pin")?.focus(), 0); // GR-7
+                }}>
+                <option value="" disabled>{t("C-JOIN-24")}</option>
+                {pending.map((m) => <option key={m.displayName} value={m.displayName}>{m.displayName}</option>)}
+                <option value={NEW}>{t("C-JOIN-25")}</option>
+              </NativeSelect>
+              <FieldError id="added-error">{addedError}</FieldError>
+              <Helper id="added-help">{t("C-JOIN-07")}</Helper>
+            </div>
+            {/* 2. Only for new people. */}
+            {added === NEW && (
               <div className="flex flex-col gap-2">
                 <Label htmlFor="name">{t("C-JOIN-08")}</Label>
-                <Input id="name" ref={nameRef} value={typedName} onChange={(e) => setTypedName(e.target.value)} autoComplete="given-name"
-                  maxLength={30} aria-invalid={!!errors.name || undefined} aria-describedby={errors.name ? "name-error" : "name-help"} />
-                <FieldError id="name-error">{errors.name}</FieldError>
+                <Input id="name" value={typedName} onChange={(e) => { setTypedName(e.target.value); setServer({}); }} onBlur={() => setNameLeft(true)}
+                  autoComplete="given-name" maxLength={30} aria-invalid={!!nameError || undefined} aria-describedby={nameError ? "name-error" : "name-help"} />
+                <FieldError id="name-error">{nameError}</FieldError>
                 <Helper id="name-help">{t("C-JOIN-09")}</Helper>
               </div>
             )}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="pin">{t("C-JOIN-10")}</Label>
-              <PinField id="pin" label={t("C-JOIN-10")} value={pin} onChange={setPin} invalid={!!errors.pin} describedBy="pin-help" />
-              <FieldError id="pin-error">{errors.pin}</FieldError>
-              <Helper id="pin-help">{t("C-JOIN-11")}</Helper>
-            </div>
-            <Alert>
-              <Info />
-              <AlertDescription>{t("C-JOIN-12")}</AlertDescription>
-            </Alert>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="pin2">{t("C-JOIN-13")}</Label>
-              <PinField id="pin2" label={t("C-JOIN-13")} value={pin2} onChange={setPin2} invalid={!!errors.pin2} describedBy={errors.pin2 ? "pin2-error" : undefined} />
-              <FieldError id="pin2-error">{errors.pin2}</FieldError>
-            </div>
-            <HintField value={hint} onChange={setHint} error={errors.hint} />
+            {added !== NEW && server.name && <FieldError id="added-server-error">{server.name}</FieldError>}
+            {/* 3. About your PIN, once step 1 is answered. */}
+            {added !== "" && <PinBlock values={pinValues} onChange={setPinValues} submitted={submitted} serverHintError={server.hint} />}
             <Button type="submit" className="h-auto min-h-11 w-full whitespace-normal py-2 text-center" disabled={busy || rateWait > 0}>
               {busy ? t("C-JOIN-15") : t("C-JOIN-14", { groupName })}
             </Button>
@@ -256,14 +252,12 @@ function RecoverForm({ code, lookup, onJoin }: { code: string; lookup: Lookup; o
           <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
             <div className="flex flex-col gap-2">
               <Label htmlFor="rname">{t("C-REC-03")}</Label>
-              <Select value={name} onValueChange={(v) => { setName(v); setLockedUntil(null); }}>
-                <SelectTrigger id="rname" aria-invalid={error?.field === "name" || undefined}>
-                  <SelectValue placeholder={t("C-REC-04")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {joined.map((m) => <SelectItem key={m.displayName} value={m.displayName}>{m.displayName}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <NativeSelect id="rname" value={name} required aria-invalid={error?.field === "name" || undefined}
+                aria-describedby={error?.field === "name" ? "rname-error" : undefined}
+                onChange={(e) => { setName(e.target.value); setLockedUntil(null); setError(null); setTimeout(() => document.getElementById("rpin")?.focus(), 0); }}>
+                <option value="" disabled>{t("C-REC-04")}</option>
+                {joined.map((m) => <option key={m.displayName} value={m.displayName}>{m.displayName}</option>)}
+              </NativeSelect>
               {error?.field === "name" && <FieldError id="rname-error">{error.text}</FieldError>}
             </div>
             <div className="flex flex-col gap-2">
@@ -281,18 +275,5 @@ function RecoverForm({ code, lookup, onJoin }: { code: string; lookup: Lookup; o
         </CardContent>
       </Card>
     </>
-  );
-}
-
-/** Optional PIN hint (G29), shared by Join and Start a group. */
-export function HintField({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="hint">{t("C-JOIN-26")}</Label>
-      <Input id="hint" value={value} onChange={(e) => onChange(e.target.value)} maxLength={40} autoComplete="off"
-        aria-invalid={!!error || undefined} aria-describedby={error ? "hint-error" : "hint-help"} />
-      <FieldError id="hint-error">{error}</FieldError>
-      <Helper id="hint-help">{t("C-JOIN-27")}</Helper>
-    </div>
   );
 }

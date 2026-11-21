@@ -8,7 +8,7 @@ import { startMemoryRouting, currentPath } from "../web/lib/router";
 import { Button } from "../web/components/ui/button";
 import { Badge } from "../web/components/ui/badge";
 import { cn } from "../web/lib/utils";
-import { ORDERED, WORKFLOWS, prepare, type Scenario } from "./scenarios";
+import { GROUP_CODE, ORDERED, SHARED_DATA, WORKFLOWS, prepare, type Scenario } from "./scenarios";
 import { organiser, getState } from "./mockServer";
 import { connectStore, identify, screenName, type Flag, type FlagKind, type Run, type Store } from "./flags";
 
@@ -200,8 +200,17 @@ function ScenarioCard({ sc }: { sc: Scenario }) {
       <h2 className="text-base font-semibold text-balance">{sc.title}</h2>
       <dl className="proto-dl">
         <dt>Who</dt><dd>{sc.who}</dd>
-        <dt>What triggers it</dt><dd>{sc.trigger}</dd>
+        <dt>How they arrive</dt><dd>{sc.arrives}</dd>
+        <dt>This browser</dt><dd>{sc.browser}</dd>
       </dl>
+      <details className="proto-details">
+        <summary>Group data (the same in every scenario)</summary>
+        <p className="text-muted-foreground text-xs">Smith Family · code <span className="font-mono">{GROUP_CODE}</span></p>
+        <table className="proto-table">
+          <thead><tr><th scope="col">Member</th><th scope="col">State</th><th scope="col">PIN</th><th scope="col">Hint</th></tr></thead>
+          <tbody>{SHARED_DATA.map((m) => <tr key={m.name}><td>{m.name}</td><td>{m.state}</td><td className="font-mono">{m.pin}</td><td>{m.hint}</td></tr>)}</tbody>
+        </table>
+      </details>
       <h3 className="proto-h3">Test data</h3>
       <table className="proto-table">
         <tbody>
@@ -319,6 +328,7 @@ function ResultCard({ sc, run, store }: { sc: Scenario; run?: Run; store: Store 
     <section className="proto-card">
       <h2 className="proto-h2">Did it match the expected outcome?</h2>
       {run && <p className="text-sm">Current: <strong>{run.result === "pass" ? "Works as expected" : "Needs changes"}</strong></p>}
+      {run?.resolution && <p className="proto-resolution"><strong>Engineer's response:</strong> {run.resolution}</p>}
       <label htmlFor={`run-note-${sc.id}`} className="sr-only">Optional note</label>
       <textarea id={`run-note-${sc.id}`} className="proto-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional note about this scenario" />
       <div className="flex flex-wrap gap-2">

@@ -80,6 +80,7 @@ npm run verify
 | ENV-08 | `/j/<code>` serves the app | Invite links open the app (FR-1.10) | ✅ |
 | ENV-09 | Unknown API path → JSON 404 | No crashes or stray pages for bad paths | ✅ |
 | ENV-10 | End-to-end browser tests (Playwright, phone and desktop) | Screens work in a real browser | ✅ |
+| ENV-11 | Prototype builds, and every scenario walks as its card describes | Scenario cards match the screens | ✅ |
 
 ### 2.2 Database schema (SMK, SCH, CLM): ✅ `test/schema/`
 | ID | Test | Requirement | Status |
@@ -261,10 +262,21 @@ Runs on a phone (Pixel 7) and, for tests tagged `@desktop`, also desktop Chrome,
 | UI-03 | `/j/<code>` opens Join; an already-joined browser goes straight in | T-01, FR-1.10 | ✅ |
 | UI-04 | Join as a new person → inside the group with the welcome message, in under 2 minutes (phone + desktop) | T-03, SC-2 | ✅ |
 | UI-05 | Choose a pre-added name in the "Have you already been added?" dropdown → joins as that person; the name box hides | T-04, FR-2.2 | ✅ |
-| UI-15 | The dropdown lists only people who haven't signed in yet; once someone joins under a name it disappears; no dropdown when nobody is waiting | FR-2.2 | ✅ |
+| UI-15 | The dropdown lists only people who haven't signed in yet; once someone joins under a name it disappears; when nobody is waiting it still shows, with "No, I'm new here" already chosen | FR-2.2, G32 | ✅ |
 | UI-16 | PIN boxes show the numbers as typed; exactly 4 boxes | FR-1.4 | ✅ |
 | UI-17 | Hint: can't contain the PIN; "Show my hint" shows it on Sign back in; "You didn't set a hint" otherwise | G29 | ✅ |
 | UI-18 | Home has no heading, intro or card title (review round 1) | R1-1 | ✅ |
+| UI-19 | PIN match checked the moment the 4th number is typed, on Join and Start a group; "PINs match." shown | GR-3, R2-1 | ✅ |
+| UI-20 | Join is answered in order: dropdown first (error if skipped), then name for new people only, then the PIN block | GR-2, GR-7 | ✅ |
+| UI-21 | Every dropdown uses the phone's own picker | GR-4, R2-3 | ✅ |
+
+### 2.12b Prototype scenario walkthroughs (PROTO): ✅ `test/e2e/prototype.spec.ts`
+Each test builds the clickable prototype and walks one scenario **exactly as its card's steps describe**, so a card and its screens can't drift apart (TPM review round 2). Part of `npm run verify` as ENV-11.
+
+| ID | Scenario | Status |
+|---|---|---|
+| PROTO-00 | All 12 cards show how the person arrives and what the browser knows, and open a start screen | ✅ |
+| PROTO-01 to PROTO-12 | SC-01 to SC-12, one test each | ✅ |
 | UI-06 | Name taken → error with a working "Sign back in" link | T-03, T-05 | ✅ |
 | UI-07 | PINs that don't match are caught before sending (confirmed by a deliberate break) | G24 | ✅ |
 | UI-08 | Sign back in on a second browser | T-05, SC-3 | ✅ |
@@ -367,15 +379,16 @@ Every requirement must map to at least one test before v1 ships.
 
 | Area | Total | ✅ Passing | 🟡 Planned | 🔒 Blocked |
 |---|---|---|---|---|
-| ENV | 10 | 10 | 0 | 0 |
+| ENV | 11 | 11 | 0 | 0 |
 | Schema (SMK/SCH/CLM-01–05) | 23 | 23 | 0 | 0 |
 | ID (identity) + CFG | 28 | 28 | 0 | 0 |
 | REQ (group requests) | 8 | 8 | 0 | 0 |
-| UI, Section 1 | 18 | 18 | 0 | 0 |
+| UI, Section 1 | 21 | 21 | 0 | 0 |
+| PROTO (prototype walkthroughs) | 13 | 13 | 0 | 0 |
 | ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 58 | 0 | 58 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **167** | **87** | **72** | **8** |
+| **Total automated** | **184** | **104** | **72** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

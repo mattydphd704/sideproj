@@ -18,6 +18,7 @@ test("Section 1 screens", async ({ page, browser }) => {
   for (const [n, p] of [["Sam", "1234"], ["Alex", "1234"], ["Jo", "1234"], ["Pat", "1234"], ["Lee", "1234"]] as const) {
     const ctx = await browser.newContext(); const pg = await ctx.newPage();
     await pg.goto(`/j/${g.display}`);
+    await pg.locator("#added").selectOption("__new__");
     await pg.getByLabel("Your name").fill(n);
     await typePin(pg, "pin", p); await typePin(pg, "pin2", p);
     if (n === "Alex") await pg.getByLabel("PIN hint (optional)").fill("the garden gate");
@@ -38,14 +39,13 @@ test("Section 1 screens", async ({ page, browser }) => {
   await page.goto(`/j/${g.display}`);
   await expect(page.getByRole("heading", { name: "Join Smith Family" })).toBeVisible();
   await shot(page, "03-join");
-  await page.getByLabel("Have you already been added?").click();
-  await shot(page, "04a-join-added-dropdown-open");
-  await page.getByRole("option", { name: "Grandma" }).click();
+  await page.locator("#added").selectOption({ label: "Grandma" });
   await typePin(page, "pin", "2468");
-  await shot(page, "04b-join-picked-pre-added-name");
+  await typePin(page, "pin2", "2468");
+  await shot(page, "04a-join-picked-pre-added-name-pins-match");
   await page.goto(`/j/${g.display}`);
-  await page.getByLabel("Have you already been added?").click();
-  await page.getByRole("option", { name: "No, I'm new here" }).click();
+  await page.locator("#added").selectOption("__new__");
+  await shot(page, "04b-join-new-person");
   await page.getByLabel("Your name").fill("Sam");
   await typePin(page, "pin", "1234"); await typePin(page, "pin2", "1234");
   await page.getByRole("button", { name: "Join Smith Family" }).click();
@@ -53,7 +53,6 @@ test("Section 1 screens", async ({ page, browser }) => {
   await shot(page, "05-join-name-taken");
   await page.getByLabel("Your name").fill("Robin");
   await typePin(page, "pin", "1234"); await typePin(page, "pin2", "9999");
-  await page.getByRole("button", { name: "Join Smith Family" }).click();
   await expect(page.getByText("The two PINs don't match.", { exact: false })).toBeVisible();
   await shot(page, "06-join-pins-dont-match");
   await page.goto("/j/ZZZZ-ZZZZ");
@@ -64,9 +63,8 @@ test("Section 1 screens", async ({ page, browser }) => {
   await page.goto(`/j/${g.display}/back`);
   await expect(page.getByRole("heading", { name: "Welcome back to Smith Family" })).toBeVisible();
   await shot(page, "08-sign-back-in");
-  await page.locator("#rname").click();
-  await shot(page, "09-sign-back-in-choose-name");
-  await page.getByRole("option", { name: "Alex" }).click();
+  await page.locator("#rname").selectOption("Alex");
+  await shot(page, "09-sign-back-in-name-chosen");
   await page.getByRole("button", { name: "Show my hint" }).click();
   await expect(page.getByText("Your hint: the garden gate")).toBeVisible();
   await shot(page, "09b-sign-back-in-hint-shown");
@@ -84,6 +82,7 @@ test("Section 1 screens", async ({ page, browser }) => {
   const ctx = await browser.newContext({ ...test.info().project.use });
   const fresh = await ctx.newPage();
   await fresh.goto(`/j/${g.display}`);
+  await fresh.locator("#added").selectOption("__new__");
   await fresh.getByLabel("Your name").fill("Morgan");
   await typePin(fresh, "pin", "2468"); await typePin(fresh, "pin2", "2468");
   await fresh.getByRole("button", { name: "Join Smith Family" }).click();

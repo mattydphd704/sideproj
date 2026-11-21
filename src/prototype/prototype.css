@@ -69,6 +69,11 @@ body { background: var(--proto-ground); }
 .proto-outcome { font-size: 14px; padding: 10px 12px; border-radius: var(--radius); background: var(--muted); border: 1px solid var(--border); }
 .proto-textarea { width: 100%; border: 1px solid var(--input); border-radius: var(--radius); background: transparent; color: var(--foreground); padding: 8px 10px; font-size: 15px; resize: vertical; }
 .proto-textarea:focus-visible { outline: 3px solid color-mix(in oklch, var(--ring) 50%, transparent); }
+.proto-details { font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+.proto-details summary { cursor: pointer; font-weight: 500; color: var(--muted-foreground); }
+.proto-details[open] summary { margin-bottom: 6px; }
+.proto-details .proto-table th { width: auto; }
+.proto-resolution { font-size: 14px; padding: 10px 12px; border-radius: var(--radius); border: 1px dashed var(--border); }
 .proto-flag { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); }
 .proto-flag.is-done { opacity: 0.65; }
 .proto-pill { display: inline-flex; align-items: center; height: 20px; padding-inline: 7px; border-radius: 999px; font-size: 11px; font-weight: 600; }

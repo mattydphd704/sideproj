@@ -31,18 +31,21 @@ function HomeGate({ forceHome }: { forceHome: boolean }) {
   const [ready, setReady] = React.useState(forceHome);
   React.useEffect(() => {
     if (forceHome) return;
+    let cancelled = false; // a screen that has closed must not navigate (BUG-005)
     (async () => {
       const me = await api.me().catch(() => ({ groups: [] as { id: string }[] }));
+      if (cancelled) return;
       if (me.groups.length) {
         const last = lastGroup.get();
         navigate(`/g/${me.groups.some((g) => g.id === last) ? last : me.groups[0]!.id}`, true);
         return;
       }
       const req = await api.currentRequest().catch(() => null);
-      if (req && req.status !== "approved") { navigate("/new", true); return; }
-      if (req?.status === "approved") { navigate("/new", true); return; }
+      if (cancelled) return;
+      if (req) { navigate("/new", true); return; }
       setReady(true);
     })();
+    return () => { cancelled = true; };
   }, [forceHome]);
   if (!ready) return <Shell><Card aria-busy="true"><CardContent><div className="bg-muted h-24 animate-pulse rounded-md" /></CardContent></Card></Shell>;
   return <Home />;

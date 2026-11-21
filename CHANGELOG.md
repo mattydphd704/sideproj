@@ -10,6 +10,15 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Changed: TPM review round 2, global workflow logic (2026-11-21)
+- **Global rules GR-1 to GR-8** for every Getting-in screen and scenario (`UI_INTERACTION_MAPS.md` §1.00): one flow map, the same layout for the same screen, consistent timing for problems, the phone's own picker for dropdowns, and one shared data set for the prototype.
+- Join screen: "Have you already been added?" is always shown and answered first. "Your name" appears for new people only. The PIN block appears once that's answered. With nobody waiting, "No, I'm new here" is already chosen (G32).
+- One shared "About your PIN" block (`PinBlock`) for Join and Start a group. PINs are checked the moment the 4th number is typed, with "PINs match." The hint is checked as you type. Name and group name are checked when you leave the field.
+- All dropdowns use a styled native picker (`NativeSelect`). The custom pop-up Select is no longer used.
+- Prototype: all 12 scenarios use the same Smith Family data. Cards show "How they arrive" and "This browser" and expand to the group data. Steps are rewritten to the global flow. The engineer's response appears on each marked result.
+- Bugs found by the new scenario walkthroughs and fixed: **BUG-004** (stale group details reused on the Join screen) and **BUG-005** (a closed screen could still navigate).
+- Tests: UI-15 updated; UI-19, UI-20, UI-21 and PROTO-00 to PROTO-12 added; `npm run verify` now also builds and walks the prototype (ENV-11).
+
 ### Changed: prototype scenario picker (2026-11-21)
 - All 12 setup and sign-in scenarios are always visible, grouped into 4 workflows, with Previous and Next buttons. Previously, at narrower widths the list collapsed into a dropdown and only SC-01 was obvious (TPM feedback).
 

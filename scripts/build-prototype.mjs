@@ -21,4 +21,6 @@ const html = `<title>Gift Lists Prototype</title>
 <script type="module">${safeJs}</script>
 `;
 writeFileSync(out, html);
+// A full page around the same content, for local checks (test/e2e/prototype.spec.ts).
+writeFileSync("dist/prototype/prototype-local.html", `<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>${html}</body></html>`);
 console.log(`Prototype written to ${out} (${Math.round(html.length / 1024)} KB)`);

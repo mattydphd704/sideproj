@@ -28,7 +28,7 @@ export function Helper({ id, children }: { id?: string; children: React.ReactNod
 }
 
 /** PIN entry: 4 boxes, digits only, numbers visible while typing (TPM UI review round 1). */
-export function PinField(props: { id: string; value: string; onChange: (v: string) => void; label: string; invalid?: boolean; describedBy?: string; autoFocus?: boolean }) {
+export function PinField(props: { id: string; value: string; onChange: (v: string) => void; label: string; invalid?: boolean; describedBy?: string; autoFocus?: boolean; onBlur?: () => void }) {
   return (
     <InputOTP
       id={props.id}
@@ -41,6 +41,7 @@ export function PinField(props: { id: string; value: string; onChange: (v: strin
       aria-invalid={props.invalid || undefined}
       aria-describedby={props.describedBy}
       autoFocus={props.autoFocus}
+      onBlur={props.onBlur}
     >
       <InputOTPGroup>
         {[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} aria-invalid={props.invalid || undefined} />)}

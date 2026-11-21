@@ -1,5 +1,8 @@
 import { expect, type Page } from "@playwright/test";
 
+/** Value of the "No, I'm new here" option in "Have you already been added?". */
+export const NEW_PERSON = "__new__";
+
 /** Types a PIN into an InputOTP field (one box per digit). */
 export async function typePin(page: Page, id: string, pin: string) {
   const input = page.locator(`input#${id}`);
@@ -9,6 +12,7 @@ export async function typePin(page: Page, id: string, pin: string) {
 
 export async function joinAs(page: Page, code: string, name: string, pin = "1234") {
   await page.goto(`/j/${code}`);
+  await page.locator("#added").selectOption(NEW_PERSON); // GR-2: answer "Have you already been added?" first
   await page.getByLabel("Your name").fill(name);
   await typePin(page, "pin", pin);
   await typePin(page, "pin2", pin);

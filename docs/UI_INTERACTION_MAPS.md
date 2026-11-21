@@ -22,6 +22,73 @@ Wording uses the **recommended L-labels** from `UI_TASK_MAP.md` §6. If you chan
 
 # Section 1: Getting in (T-01 to T-08, S-02 to S-04, S-06)
 
+## 1.00 Global rules for every Getting-in screen and scenario *(added in TPM review round 2)*
+
+**Why:** in round 2 the TPM found that scenarios didn't follow one shared logic. The same screen looked different from one scenario to the next because of data the tester couldn't see. Errors appeared at different moments, and one dropdown didn't open in the viewer. These rules apply to **every** screen and scenario in this section. Later sections will get their own global rules in the same form.
+
+### One flow for all scenarios (GR-1)
+Every scenario is a path through this one map. No scenario has a step that isn't on it.
+
+```mermaid
+flowchart TD
+  E1([Invite link /j/CODE]) --> J
+  E2([Home: type a code]) -->|Continue| J
+  E3([Home: Start a new group]) --> N[Start a group: group details + About you]
+  J{{Join screen}} --> A["1. Have you already been added?"]
+  A -->|Picks their name| P["3. About your PIN: create, again, hint"]
+  A -->|No, I'm new here| Y["2. Your name"] --> P
+  J -->|Been here before? Sign back in| R["Sign back in: pick name + PIN"]
+  P -->|Join| IN[[Inside the group]]
+  R -->|Sign in| IN
+  N -->|Send request| W[Waiting for approval] -->|Organiser approves| IN
+  W -->|Organiser declines| D[Declined: send a new request] --> N
+```
+
+### Same screen, same layout (GR-2)
+- **The Join screen always has the same blocks, in the same order,** whatever the group's data:
+  1. Title and "Already here"
+  2. **Have you already been added?** This is **always shown**. It lists the names the organiser added who haven't signed in yet, then "No, I'm new here". If nobody is waiting, the only option is "No, I'm new here", and it's already chosen (G32).
+  3. **Your name**, shown only after "No, I'm new here" is chosen.
+  4. **About your PIN**: Create a PIN, the PIN explanation, Enter your PIN again, and the optional PIN hint. Shown once step 2 is answered.
+  5. The **Join** button, then the **Been here before? Sign back in** link.
+- **Start a new group** uses exactly the same "Your name" field and **About your PIN** block, in the same order, with the same wording and the same checks.
+- **Sign back in** uses the same name picker and PIN boxes as Join.
+
+### When problems are shown (GR-3)
+| What | When it's checked | Where it shows |
+|---|---|---|
+| Required text (name, group name, code) | When you leave the field, and when you tap the main button | Red text right under the field |
+| PIN length (4 numbers) | When you leave the PIN boxes, and on the main button | Under the PIN boxes |
+| **PINs match** | **The moment the 4th number is typed** in "Enter your PIN again". A mismatch shows straight away; a match shows "PINs match." | Under "Enter your PIN again" |
+| Hint contains the PIN | As you type the hint | Under the hint |
+| Unanswered "Have you already been added?" | When you tap Join | Under the dropdown |
+| Server checks (wrong code, name taken, wrong PIN) | When you tap the main button | Under the field they belong to |
+| Blocking problems (locked, too many attempts) | When they happen | Red alert above the card; main button disabled |
+
+An error clears as soon as the field it belongs to is changed. Main buttons stay enabled, so tapping them always shows what's missing, except during blocking problems.
+
+### Dropdowns (GR-4)
+Every dropdown uses the **phone's own picker** (a styled native `select`), so it opens on any device and inside any viewer. This applies to: Have you already been added?, Your name on Sign back in, and Currency.
+
+### Layout and feedback (GR-5, GR-6, GR-7)
+- **GR-5:** Every screen except Home has **Back** at the top left. Each screen is one card. The main button spans the full width at the bottom of the card, with any secondary link under it.
+- **GR-6:** Success messages appear briefly at the top of the screen. Field problems show in red under the field. Blocking problems show as a red alert above the card. Explanations show in a grey info box.
+- **GR-7:** After you choose from a dropdown, focus moves to the next field. After an error, focus moves to the first field with a problem.
+
+### Prototype data (GR-8)
+Every scenario uses **the same Smith Family group** (code `SMTH-2345`):
+
+| Member | State | PIN | Hint |
+|---|---|---|---|
+| Sam | Joined | 1234 | the old house number |
+| Alex | Joined | 1234 | none |
+| Jo | Joined | 2580 | the garden gate |
+| Grandma | Added by the organiser, hasn't signed in | — | — |
+| Uncle Ray | Added by the organiser, hasn't signed in | — | — |
+
+Scenarios differ only in **how the person arrives** and **what this browser already knows**, for example new, already signed in, or holding a group request. Each scenario card shows both.
+
+
 ## 1.0 Screens in this section
 
 | Screen | Address | Shown when |
@@ -159,9 +226,11 @@ flowchart TD
 └────────────────────────────────────┘
 ```
 
+**Revised again in review round 2 (global rules GR-2, GR-3, GR-4):** the dropdown is always shown and is answered first. "Your name" appears only after "No, I'm new here". The PIN block appears once the dropdown is answered. Both dropdowns use the phone's own picker. The PIN match is checked the moment the 4th number is typed.
+
 **How people get here:** by opening an invite link (`/j/<code>`), or by entering a code on Home.
 
-**Who appears in the dropdown:** only names the organiser added that haven't signed in for the first time yet. As soon as someone signs in under a name, it disappears from the dropdown. If nobody is waiting, the dropdown isn't shown at all.
+**Who appears in the dropdown:** only names the organiser added that haven't signed in for the first time yet. As soon as someone signs in under a name, it disappears from the dropdown. If nobody is waiting, the dropdown still appears (GR-2), with "No, I'm new here" as its only option, already chosen (G32).
 
 **Why "enter your PIN again":** the PIN is only needed rarely, and a typo would lock the person out of their own name later. Typing it twice costs a few seconds now and saves a support call later. *(Decision G24.)*
 
@@ -184,7 +253,7 @@ flowchart TD
 | C-JOIN-14 | Button | Join {groupName} |
 | C-JOIN-15 | Button while working | Joining… |
 | C-JOIN-16 | Switch to recovery | Been here before? Sign back in |
-| C-JOIN-17 | Error: PINs differ | The two PINs don't match. Try again. |
+| C-JOIN-17 | Error: PINs differ (shown the moment the 4th number of the second PIN is typed, GR-3) | The two PINs don't match. Try again. |
 | C-JOIN-18 | Error: name empty | Enter your name. |
 | C-JOIN-19 | Welcome toast | Welcome to {groupName}! |
 | C-JOIN-20 | Already-a-member toast | You're already in {groupName}. |
@@ -195,7 +264,10 @@ flowchart TD
 | C-JOIN-25 | Dropdown option for new people | No, I'm new here |
 | C-JOIN-26 | Hint label | PIN hint (optional) |
 | C-JOIN-27 | Hint helper | A reminder only you will understand. Don't include your PIN. |
-| C-JOIN-28 | Error: hint contains the PIN | Your hint can't include your PIN. |
+| C-JOIN-28 | Error: hint contains the PIN (shown as you type) | Your hint can't include your PIN. |
+| C-JOIN-29 | Error: "Have you already been added?" not answered | Choose your name, or "No, I'm new here". |
+| C-JOIN-30 | Confirmation the moment both PINs match | PINs match. |
+| C-JOIN-31 | Error: second PIN incomplete when tapping Join | Enter your PIN again. |
 | C-ERR-NAME-TAKEN | Error under name (from API) | Someone in this group already uses that name. If it's you, sign back in instead. |
 | C-ERR-NAME-TAKEN-LINK | Link inside that error | Sign back in |
 
@@ -211,7 +283,7 @@ flowchart TD
 | | | 400 `validation` | Under the matching field: the API's message |
 | | | 429 `rate_limited` | **C-ERR-RATE** |
 
-Checked in the browser before sending: name not empty (**C-JOIN-18**), PIN is 4 numbers (**C-JOIN-11**), both PINs match (**C-JOIN-17**), and the hint doesn't contain the PIN (**C-JOIN-28**).
+Checked in the browser, at the moments set by GR-3: dropdown answered (**C-JOIN-29**), name not empty (**C-JOIN-18**), PIN is 4 numbers (**C-JOIN-11**), second PIN complete (**C-JOIN-31**) and matching (**C-JOIN-17** / **C-JOIN-30**), and the hint doesn't contain the PIN (**C-JOIN-28**).
 
 ### Accessibility
 - `InputOTP` has the label "PIN, 4 numbers" and a numeric keypad (`inputmode="numeric"`). It accepts pasting. Numbers are shown as typed (TPM review round 1).
@@ -435,6 +507,7 @@ PIN, hint, name and PIN-explanation wording is reused from the Join screen (**C-
 
 | G29 | PIN hint rules | Optional; up to 40 characters; can't contain the PIN (checked in the browser and on the server); shown on Sign back in only after the person picks their name and taps "Show my hint"; cleared by an admin PIN reset. |
 | G30 | **Security trade-off: 4-number PINs and hints** *(needs a TPM decision)* | A 4-number PIN has 10,000 combinations, compared with about 1.1 million for 4–6 numbers. Visible hints can also give clues. Today's limits (5 wrong tries, then 15 minutes locked) let a determined person try about 480 PINs a day against one name, so they'd have about a 50% chance of guessing it within roughly 10 days. **Proposed:** after 3 lockouts in 24 hours, lock the name until the organiser resets the PIN, and tell the organiser. |
+| G32 | When nobody is waiting to be added, keep showing "Have you already been added?" | **Yes, with "No, I'm new here" already chosen.** The Join screen always has the same layout (GR-2). *(Built this way; TPM to confirm.)* |
 | G31 | The "Already here: Sam, Alex…" line shows the names of people who **have** joined. Keep it, given that the dropdown now only shows people who haven't? | **Keep it.** It confirms the right group, and members see each other's names anyway (FR-1.8). |
 
 **Build note (2026-11-21):** the TPM said "go ahead and build", so G24–G28 and L14–L17 are built with the recommended values above. Any of them can be changed through feedback.
@@ -459,6 +532,15 @@ After joining, people land on a simple placeholder until "My list" (Section 2) i
 | R1-2 | How do people reach frames 06–08? | Scenarios written up, with a "How people get here" note on each screen. No UI change. | §1.2 (frames 06, 07), §1.3 (frame 08) |
 | R1-3 | Show the PIN numbers; PINs are exactly 4 numbers; add an optional hint | Digits visible; 4 boxes; requirement changed (FR-1.4, NFR-4); hint added (G29) to Join and Start a group, with "Show my hint" on Sign back in | §1.2–§1.4; C-JOIN-11, C-JOIN-26–28, C-REC-13–15; migration 0002 |
 | R1-4 | Frames 03–05: dropdown labelled "Have you already been added?"; only list people who haven't signed in for the first time | The name buttons are now a dropdown (plus "No, I'm new here") showing only not-yet-joined names. The requirement is recorded in FR-2.2. | §1.2; C-JOIN-06, C-JOIN-07, C-JOIN-24, C-JOIN-25 |
+
+## 1.6d TPM review round 2 (2026-11-21): changes made
+
+| # | Feedback (prototype results) | Change |
+|---|---|---|
+| R2-0 | "The prototype doesn't follow any global workflow logic; screens don't share the same design logic." | **Global rules GR-1 to GR-8 added (§1.00)** and applied to every screen and scenario. |
+| R2-1 | SC-01: "PINs don't match" should show after the 4th number of the second PIN, not only when Join is tapped | GR-3: live check on the 4th digit, plus "PINs match." The same block is used on Start a group. |
+| R2-2 | SC-02 failed (no note) | Likely cause: SC-02's group had nobody waiting to be added, so its Join screen had no dropdown, unlike SC-01 and SC-03. Fixed by GR-2 (dropdown always shown) and GR-8 (one shared group for all scenarios). *TPM to confirm this was the issue.* |
+| R2-3 | SC-03: "Have you already been added?" didn't display | GR-4: every dropdown now uses the phone's own picker, which opens reliably inside the viewer. The scenario's steps now match the new layout. |
 
 ## 1.6c Clickable prototype and workflow scenarios
 

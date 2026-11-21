@@ -11,11 +11,14 @@ import { lastGroup, navigate } from "../lib/router";
 export function GroupPlaceholder({ groupId }: { groupId: string }) {
   const [me, setMe] = React.useState<Me | null>(null);
   React.useEffect(() => {
+    let cancelled = false; // a screen that has closed must not navigate (BUG-005)
     api.me().then((m) => {
+      if (cancelled) return;
       if (!m.groups.some((g) => g.id === groupId)) { navigate("/", true); return; }
       lastGroup.set(groupId);
       setMe(m);
-    }).catch(toastUnexpected);
+    }).catch((e) => { if (!cancelled) toastUnexpected(e); });
+    return () => { cancelled = true; };
   }, [groupId]);
   const g = me?.groups.find((x) => x.id === groupId);
   if (!g) return <Shell><Card aria-busy="true"><CardContent><div className="bg-muted h-24 animate-pulse rounded-md" /></CardContent></Card></Shell>;

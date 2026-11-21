@@ -8,7 +8,7 @@ export type Flag = {
   id: string; scenarioId: string; screen: string; copyId: string | null; element: string;
   note: string; kind: FlagKind; status: "open" | "done"; createdAt: number; resolution?: string;
 };
-export type Run = { scenarioId: string; result: "pass" | "fail"; note: string; updatedAt: number };
+export type Run = { scenarioId: string; result: "pass" | "fail"; note: string; updatedAt: number; resolution?: string };
 
 export type Store = {
   mode: "shared" | "local";
@@ -42,7 +42,7 @@ export async function connectStore(): Promise<Store> {
       ),
       addFlag: async (f) => { await db.collection("flags").add({ ...f, status: "open", createdAt: Date.now() }); },
       deleteFlag: async (id) => { await db.doc(`flags/${id}`).delete(); },
-      setRun: async (r) => { await db.doc(`runs/${r.scenarioId}`).set(r); },
+      setRun: async (r) => { await db.doc(`runs/${r.scenarioId}`).set({ ...r }); },
     };
   }
   // Local fallback: this browser only.

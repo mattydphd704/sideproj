@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { FieldError, Helper, PinField, RateLimitAlert, Shell, hintHasPin, toastUnexpected, validPin } from "../components/common";
-import { HintField } from "./Join";
+import { NativeSelect } from "../components/ui/native-select";
+import { PinBlock, firstPinProblem, type PinValues } from "../components/PinBlock";
+import { FieldError, Helper, RateLimitAlert, Shell, toastUnexpected } from "../components/common";
 import { t } from "../copy";
 import { api, ApiError, type RequestStatus } from "../lib/api";
 import { lastGroup, navigate } from "../lib/router";
@@ -21,9 +21,13 @@ export function NewGroup() {
   const [status, setStatus] = React.useState<RequestStatus | "none" | "loading">("loading");
   const [checkedAt, setCheckedAt] = React.useState<number>(Date.now());
 
+  const alive = React.useRef(true); // a screen that has closed must not navigate (BUG-005)
+  React.useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
   const check = React.useCallback(async () => {
     try {
       const r = await api.currentRequest();
+      if (!alive.current) return;
       setCheckedAt(Date.now());
       if (r.status === "approved" && r.group) {
         lastGroup.set(r.group.id);
@@ -33,6 +37,7 @@ export function NewGroup() {
       }
       setStatus(r);
     } catch (err) {
+      if (!alive.current) return;
       if (err instanceof ApiError && err.code === "no_request") setStatus("none");
       else { toastUnexpected(err); setStatus((s) => (s === "loading" ? "none" : s)); }
     }
@@ -59,35 +64,33 @@ function RequestForm({ onSent }: { onSent: (groupName: string) => void }) {
   const [groupName, setGroupName] = React.useState("");
   const [currency, setCurrency] = React.useState(guessCurrency());
   const [name, setName] = React.useState("");
-  const [pin, setPin] = React.useState("");
-  const [pin2, setPin2] = React.useState("");
-  const [hint, setHint] = React.useState("");
-  const [errors, setErrors] = React.useState<{ group?: string; name?: string; pin?: string; pin2?: string; hint?: string }>({});
+  const [left, setLeft] = React.useState<{ group?: boolean; name?: boolean }>({});
+  const [pinValues, setPinValues] = React.useState<PinValues>({ pin: "", pin2: "", hint: "" });
+  const [submitted, setSubmitted] = React.useState(false);
+  const [server, setServer] = React.useState<{ group?: string; hint?: string }>({});
   const [rateWait, setRateWait] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const currencies = COMMON_CURRENCIES.includes(currency) ? COMMON_CURRENCIES : [currency, ...COMMON_CURRENCIES];
 
+  // GR-3: checked when leaving the field and when tapping the main button.
+  const groupError = server.group ?? ((left.group || submitted) && !groupName.trim() ? t("C-NEW-18")
+    : groupName.trim().length > 60 ? t("C-NEW-19") : undefined);
+  const nameError = (left.name || submitted) && !name.trim() ? t("C-JOIN-18") : undefined;
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const next: typeof errors = {};
-    if (!groupName.trim()) next.group = t("C-NEW-18");
-    else if (groupName.trim().length > 60) next.group = t("C-NEW-19");
-    if (!name.trim()) next.name = t("C-JOIN-18");
-    if (!validPin(pin)) next.pin = t("C-JOIN-11");
-    else if (pin !== pin2) next.pin2 = t("C-JOIN-17");
-    if (!next.pin && hintHasPin(hint, pin)) next.hint = t("C-JOIN-28");
-    setErrors(next);
-    if (Object.keys(next).length) {
-      if (next.pin2) setPin2("");
-      document.getElementById(next.group ? "gname" : next.name ? "yname" : next.pin ? "npin" : next.pin2 ? "npin2" : "hint")?.focus();
-      return;
-    }
+    setSubmitted(true);
+    // GR-7: focus the first field with a problem.
+    if (!groupName.trim() || groupName.trim().length > 60) { document.getElementById("gname")?.focus(); return; }
+    if (!name.trim()) { document.getElementById("yname")?.focus(); return; }
+    const p = firstPinProblem(pinValues);
+    if (p) { document.getElementById(p === "pin" ? "npin" : p === "pin2" ? "npin2" : "hint")?.focus(); return; }
     setBusy(true);
     try {
-      const r = await api.requestGroup({ groupName, currency, displayName: name, pin, pinHint: hint.trim() || undefined });
+      const r = await api.requestGroup({ groupName, currency, displayName: name, pin: pinValues.pin, pinHint: pinValues.hint.trim() || undefined });
       onSent(r.request.groupName);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "validation") setErrors(/hint/i.test(err.message) ? { hint: err.message } : { group: err.message });
+      if (err instanceof ApiError && err.code === "validation") setServer(/hint/i.test(err.message) ? { hint: err.message } : { group: err.message });
       else if (err instanceof ApiError && err.code === "rate_limited") setRateWait(err.retryAfterSec);
       else toastUnexpected(err);
     } finally {
@@ -108,38 +111,27 @@ function RequestForm({ onSent }: { onSent: (groupName: string) => void }) {
           <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
             <div className="flex flex-col gap-2">
               <Label htmlFor="gname">{t("C-NEW-03")}</Label>
-              <Input id="gname" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder={t("C-NEW-04")} maxLength={60}
-                aria-invalid={!!errors.group || undefined} aria-describedby={errors.group ? "gname-error" : undefined} />
-              <FieldError id="gname-error">{errors.group}</FieldError>
+              <Input id="gname" value={groupName} onChange={(e) => { setGroupName(e.target.value); setServer({}); }} onBlur={() => setLeft((l) => ({ ...l, group: true }))}
+                placeholder={t("C-NEW-04")} maxLength={60} aria-invalid={!!groupError || undefined} aria-describedby={groupError ? "gname-error" : undefined} />
+              <FieldError id="gname-error">{groupError}</FieldError>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="currency">{t("C-NEW-05")}</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger id="currency" aria-describedby="currency-help"><SelectValue /></SelectTrigger>
-                <SelectContent>{currencies.map((c) => <SelectItem key={c} value={c}>{currencyLabel(c)}</SelectItem>)}</SelectContent>
-              </Select>
+              <NativeSelect id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} aria-describedby="currency-help">
+                {currencies.map((c) => <option key={c} value={c}>{currencyLabel(c)}</option>)}
+              </NativeSelect>
               <Helper id="currency-help">{t("C-NEW-06")}</Helper>
             </div>
+            {/* Same "Your name" field and PIN block as the Join screen (GR-2). */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="yname">{t("C-NEW-07")}</Label>
-              <Input id="yname" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" maxLength={30}
-                aria-invalid={!!errors.name || undefined} aria-describedby={errors.name ? "yname-error" : "yname-help"} />
-              <FieldError id="yname-error">{errors.name}</FieldError>
+              <Input id="yname" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setLeft((l) => ({ ...l, name: true }))}
+                autoComplete="given-name" maxLength={30} aria-invalid={!!nameError || undefined} aria-describedby={nameError ? "yname-error" : "yname-help"} />
+              <FieldError id="yname-error">{nameError}</FieldError>
               <Helper id="yname-help">{t("C-JOIN-09")}</Helper>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="npin">{t("C-JOIN-10")}</Label>
-              <PinField id="npin" label={t("C-JOIN-10")} value={pin} onChange={setPin} invalid={!!errors.pin} describedBy="npin-help" />
-              <FieldError id="npin-error">{errors.pin}</FieldError>
-              <Helper id="npin-help">{t("C-JOIN-11")}</Helper>
-            </div>
-            <Alert><Info /><AlertDescription>{t("C-JOIN-12")}</AlertDescription></Alert>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="npin2">{t("C-JOIN-13")}</Label>
-              <PinField id="npin2" label={t("C-JOIN-13")} value={pin2} onChange={setPin2} invalid={!!errors.pin2} />
-              <FieldError id="npin2-error">{errors.pin2}</FieldError>
-            </div>
-            <HintField value={hint} onChange={setHint} error={errors.hint} />
+            <PinBlock values={pinValues} onChange={setPinValues} submitted={submitted} serverHintError={server.hint}
+              ids={{ pin: "npin", pin2: "npin2", hint: "hint" }} />
             <Button type="submit" className="w-full" disabled={busy || rateWait > 0}>{busy ? t("C-NEW-09") : t("C-NEW-08")}</Button>
           </form>
         </CardContent>

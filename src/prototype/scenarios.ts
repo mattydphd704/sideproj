@@ -1,5 +1,7 @@
 // Workflow scenarios for the clickable prototype (Section 1: Getting in).
-// Each one maps to tasks in docs/UI_TASK_MAP.md and screens in docs/UI_INTERACTION_MAPS.md.
+// Global rules (docs/UI_INTERACTION_MAPS.md §1.00): every scenario is a path through the one
+// flow map (GR-1) and uses the same Smith Family data (GR-8). Scenarios differ only in how
+// the person arrives and what this browser already knows.
 import { addGroup, getState, newState, setState } from "./mockServer";
 
 export type Workflow = "Joining a group" | "Signing back in" | "Starting a new group" | "Mistakes and limits";
@@ -13,244 +15,226 @@ export type Scenario = {
   title: string;
   tasks: string[];
   who: string;
-  trigger: string;
+  /** How the person arrives (an entry point on the GR-1 map). */
+  arrives: string;
+  /** What this browser already knows before the scenario starts. */
+  browser: string;
   start: string;
   testData: [string, string][];
   steps: string[];
   outcome: string;
   /** Shows the organiser's Approve and Decline buttons in the side panel. */
   organiser?: boolean;
-  setup: () => void;
+  setup?: () => void;
 };
 
-const SMITH = "SMTH2345";
-const SMITH_SHOWN = "SMTH-2345";
+export const GROUP_CODE = "SMTH-2345";
 
-/** The Smith Family group used by most scenarios. */
-function smith(extra: { pending?: string[] } = {}) {
-  return addGroup("Smith Family", SMITH, [
-    { name: "Sam", pin: "1234", hint: "the old house number" },
-    { name: "Alex", pin: "1234" },
-    { name: "Jo", pin: "2580", hint: "the garden gate" },
-    ...(extra.pending ?? []).map((name) => ({ name, status: "pending" as const })),
-  ]);
+/** GR-8: the one group every scenario uses. */
+export const SHARED_DATA: { name: string; state: string; pin: string; hint: string }[] = [
+  { name: "Sam", state: "Joined", pin: "1234", hint: "the old house number" },
+  { name: "Alex", state: "Joined", pin: "1234", hint: "none" },
+  { name: "Jo", state: "Joined", pin: "2580", hint: "the garden gate" },
+  { name: "Grandma", state: "Added, not signed in yet", pin: "—", hint: "—" },
+  { name: "Uncle Ray", state: "Added, not signed in yet", pin: "—", hint: "—" },
+];
+
+function sharedGroup() {
+  return addGroup("Smith Family", GROUP_CODE.replace("-", ""), SHARED_DATA.map((m) =>
+    m.state === "Joined"
+      ? { name: m.name, pin: m.pin, hint: m.hint === "none" ? null : m.hint }
+      : { name: m.name, status: "pending" as const }));
 }
+
+// Steps shared by every "join as a new person" path, so they read the same everywhere.
+const NEW_PERSON_STEPS = (name: string) => [
+  `In "Have you already been added?", choose "No, I'm new here". The "Your name" box appears.`,
+  `Type "${name}".`,
+  "Create a PIN: 4 numbers. The numbers show as you type.",
+  "Enter the same PIN again. As soon as the 4th number is typed, you see \"PINs match.\"",
+  "Optionally add a PIN hint, then tap \"Join Smith Family\".",
+];
 
 export const SCENARIOS: Scenario[] = [
   {
-    id: "SC-01",
-    workflow: "Joining a group",
-    title: "Join from an invite link",
-    tasks: ["T-01", "T-03"],
+    id: "SC-01", workflow: "Joining a group", title: "Join from an invite link", tasks: ["T-01", "T-03"],
     who: "Morgan, a cousin who has never used the app",
-    trigger: "Sam texts Morgan the family's invite link, and Morgan taps it on their phone.",
-    start: `/j/${SMITH_SHOWN}`,
-    testData: [["Invite link", `/j/${SMITH_SHOWN}`], ["Your name", "Morgan"], ["PIN", "any 4 numbers, typed twice"]],
-    steps: [
-      "The Join screen opens for \"Smith Family\" and lists who's already here.",
-      "Leave \"Have you already been added?\" alone and type a name.",
-      "Create a 4-number PIN. The numbers show as you type.",
-      "Enter the same PIN again. A hint is optional.",
-      "Tap \"Join Smith Family\".",
-    ],
-    outcome: "Morgan is inside Smith Family, sees \"Welcome to Smith Family!\" and \"Signed in as Morgan\".",
-    setup: () => { smith({ pending: ["Grandma"] }); },
+    arrives: "Taps the invite link Sam texted them",
+    browser: "New: has never used the app",
+    start: `/j/${GROUP_CODE}`,
+    testData: [["Your name", "Morgan"], ["PIN", "any 4 numbers, typed twice"]],
+    steps: ["The Join screen opens: \"Join Smith Family\", with who's already here.", ...NEW_PERSON_STEPS("Morgan")],
+    outcome: "Morgan is inside Smith Family, with \"Welcome to Smith Family!\" and \"Signed in as Morgan\".",
   },
   {
-    id: "SC-02",
-    workflow: "Joining a group",
-    title: "Type a group code",
-    tasks: ["T-02"],
+    id: "SC-02", workflow: "Joining a group", title: "Type a group code", tasks: ["T-02", "T-03"],
     who: "Pat, who was told the code out loud",
-    trigger: "At a family dinner Sam says \"our code is SMTH-2345\". Pat opens the app's home page.",
+    arrives: "Opens the app's home page and types the code",
+    browser: "New: has never used the app",
     start: "/",
-    testData: [["Wrong code to try first", "ABCD-EFGH"], ["Right code", SMITH_SHOWN]],
+    testData: [["Wrong code to try first", "ABCD-EFGH"], ["Right code", GROUP_CODE], ["Your name", "Pat"]],
     steps: [
       "Home shows one box: Group code.",
-      "Type a wrong code and tap Continue. An error appears under the box.",
+      "Type the wrong code and tap Continue. \"That group code didn't work…\" appears under the box.",
       "Type the right code (with or without the dash, any case) and tap Continue.",
+      "The same Join screen as SC-01 opens.",
+      ...NEW_PERSON_STEPS("Pat"),
     ],
-    outcome: "The Join screen for Smith Family opens. From here it's the same as SC-01.",
-    setup: () => { smith(); },
+    outcome: "Pat is inside Smith Family, with \"Welcome to Smith Family!\".",
   },
   {
-    id: "SC-03",
-    workflow: "Joining a group",
-    title: "Join under a name the organiser added",
-    tasks: ["T-04"],
-    who: "Grandma, whom the organiser added by name before she ever opened the app",
-    trigger: "Grandma opens the invite link her grandson sent.",
-    start: `/j/${SMITH_SHOWN}`,
-    testData: [["Have you already been added?", "Grandma"], ["PIN", "any 4 numbers"]],
+    id: "SC-03", workflow: "Joining a group", title: "Join under a name the organiser added", tasks: ["T-04"],
+    who: "Grandma, whom the organiser added before she ever opened the app",
+    arrives: "Taps the invite link her grandson sent",
+    browser: "New: has never used the app",
+    start: `/j/${GROUP_CODE}`,
+    testData: [["Have you already been added?", "Grandma"], ["PIN", "any 4 numbers, typed twice"]],
     steps: [
-      "Open \"Have you already been added?\". Only people who haven't signed in yet are listed (Grandma, Uncle Ray), plus \"No, I'm new here\".",
-      "Choose Grandma. The \"Your name\" box disappears because the name is set.",
-      "Create a PIN, enter it again, and optionally add a hint.",
-      "Tap \"Join Smith Family\".",
+      "The same Join screen as SC-01 opens.",
+      "Open \"Have you already been added?\". It lists Grandma, Uncle Ray and \"No, I'm new here\". Joined people (Sam, Alex, Jo) aren't listed.",
+      "Choose Grandma. No \"Your name\" box appears, because the name is already set.",
+      "Create a PIN, then enter it again. \"PINs match.\" appears.",
+      "Optionally add a PIN hint, then tap \"Join Smith Family\".",
     ],
-    outcome: "Grandma is inside the group. If you restart this scenario, her name is gone from the dropdown because she has now signed in.",
-    setup: () => { smith({ pending: ["Grandma", "Uncle Ray"] }); },
+    outcome: "Grandma is inside Smith Family as \"Signed in as Grandma\". From now on her name no longer appears in anyone's dropdown.",
   },
   {
-    id: "SC-04",
-    workflow: "Signing back in",
-    title: "Name already taken, so sign back in",
-    tasks: ["T-03", "T-05"],
-    who: "Alex, who joined last year, on a new phone",
-    trigger: "Alex opens the invite link on a new phone and tries to join again as \"Alex\".",
-    start: `/j/${SMITH_SHOWN}`,
+    id: "SC-11", workflow: "Joining a group", title: "Open an invite link when already in the group", tasks: ["T-01"],
+    who: "Sam, already signed in on this phone",
+    arrives: "Taps the group's invite link again, perhaps from an old message",
+    browser: "Already signed in as Sam",
+    start: `/j/${GROUP_CODE}`,
+    testData: [["This browser", "signed in as Sam"]],
+    steps: ["Nothing to do. Watch what happens when the link opens."],
+    outcome: "Sam goes straight into the group with \"You're already in Smith Family.\" No join form appears.",
+    setup: () => {
+      const g = getState().groups[0]!;
+      getState().browser.memberIds.push(g.members.find((m) => m.name === "Sam")!.id);
+    },
+  },
+  {
+    id: "SC-04", workflow: "Signing back in", title: "Name already taken, so sign back in", tasks: ["T-03", "T-05"],
+    who: "Alex, who joined last year, now on a new phone",
+    arrives: "Taps the invite link and tries to join again as \"Alex\"",
+    browser: "New phone: the app doesn't know Alex here",
+    start: `/j/${GROUP_CODE}`,
     testData: [["Your name", "Alex"], ["Alex's real PIN", "1234"]],
     steps: [
-      "Type \"Alex\", create any PIN twice, and tap Join.",
-      "An error says the name is taken, with a \"Sign back in\" link.",
+      ...NEW_PERSON_STEPS("Alex").slice(0, 4),
+      "Tap \"Join Smith Family\". Under the name: \"Someone in this group already uses that name…\", with a \"Sign back in\" link.",
       "Tap \"Sign back in\". The Welcome back screen opens.",
-      "Choose Alex, enter 1234, and tap Sign in.",
+      "In \"Your name\", choose Alex. Enter 1234 and tap Sign in.",
     ],
-    outcome: "Alex is back in the group with \"Welcome back, Alex!\", and their list and claims are intact.",
-    setup: () => { smith(); },
+    outcome: "Alex is back in Smith Family with \"Welcome back, Alex!\".",
   },
   {
-    id: "SC-05",
-    workflow: "Signing back in",
-    title: "Sign back in on a new device, using the hint",
-    tasks: ["T-05", "S-04"],
+    id: "SC-05", workflow: "Signing back in", title: "Sign back in on a new device, using the hint", tasks: ["T-05", "S-04"],
     who: "Jo, who cleared their browser and can't quite remember their PIN",
-    trigger: "The app no longer recognises Jo's browser. Jo opens the invite link and taps \"Been here before? Sign back in\".",
-    start: `/j/${SMITH_SHOWN}`,
+    arrives: "Taps the invite link, then \"Been here before? Sign back in\"",
+    browser: "Cleared: the app no longer recognises Jo",
+    start: `/j/${GROUP_CODE}`,
     testData: [["Your name", "Jo"], ["Jo's hint", "the garden gate"], ["Jo's PIN", "2580"]],
     steps: [
-      "On the Join screen, tap \"Been here before? Sign back in\".",
-      "Choose Jo from the list. A \"Show my hint\" link appears.",
+      "The same Join screen as SC-01 opens. Tap \"Been here before? Sign back in\" at the bottom.",
+      "In \"Your name\", choose Jo. A \"Show my hint\" link appears.",
       "Tap \"Show my hint\". It says \"Your hint: the garden gate\".",
       "Enter 2580 and tap Sign in.",
     ],
-    outcome: "Jo is back in the group with \"Welcome back, Jo!\".",
-    setup: () => { smith(); },
+    outcome: "Jo is back in Smith Family with \"Welcome back, Jo!\".",
   },
   {
-    id: "SC-06",
-    workflow: "Signing back in",
-    title: "Too many wrong PINs",
-    tasks: ["T-05", "S-02"],
+    id: "SC-06", workflow: "Signing back in", title: "Too many wrong PINs", tasks: ["T-05", "S-02"],
     who: "Someone trying to guess Sam's PIN (or Sam, having a bad day)",
-    trigger: "On Welcome back, the person keeps entering the wrong PIN for Sam.",
-    start: `/j/${SMITH_SHOWN}/back`,
+    arrives: "Taps the invite link, then \"Been here before? Sign back in\"",
+    browser: "New: the app doesn't know them",
+    start: `/j/${GROUP_CODE}`,
     testData: [["Your name", "Sam"], ["Wrong PIN", "0000 (5 times)"]],
     steps: [
-      "Choose Sam, enter 0000, and tap Sign in. The wrong-PIN message mentions the 5-try limit.",
+      "Tap \"Been here before? Sign back in\".",
+      "In \"Your name\", choose Sam. Enter 0000 and tap Sign in. The wrong-PIN message mentions the 5-try limit.",
       "Repeat until the 5th wrong try.",
     ],
-    outcome: "A red \"Too many wrong PINs\" alert says Sam is locked until a time 15 minutes from now. Sign in is greyed out.",
-    setup: () => { smith(); },
+    outcome: "A red \"Too many wrong PINs\" alert appears above the card, saying Sam is locked until a time 15 minutes away. Sign in is greyed out.",
   },
   {
-    id: "SC-07",
-    workflow: "Mistakes and limits",
-    title: "PIN typo while joining",
-    tasks: ["T-03"],
-    who: "Robin, typing quickly",
-    trigger: "While joining, Robin types one PIN and then a different one in \"Enter your PIN again\".",
-    start: `/j/${SMITH_SHOWN}`,
-    testData: [["Your name", "Robin"], ["Create a PIN", "1234"], ["Enter your PIN again", "9999"]],
-    steps: [
-      "Type a name, enter 1234, then 9999 in the second PIN boxes.",
-      "Tap Join.",
-    ],
-    outcome: "\"The two PINs don't match. Try again.\" appears, the second boxes clear, and nothing is sent.",
-    setup: () => { smith(); },
-  },
-  {
-    id: "SC-08",
-    workflow: "Mistakes and limits",
-    title: "Broken invite link",
-    tasks: ["T-01"],
-    who: "Lee, who received a link that got cut off when it was copied",
-    trigger: "Lee taps a link whose code is wrong.",
-    start: "/j/ABCD-EFGH",
-    testData: [["Link opened", "/j/ABCD-EFGH (no such group)"], ["Right code", SMITH_SHOWN]],
-    steps: [
-      "\"This invite didn't work\" appears, with an \"Enter a code\" button.",
-      "Tap \"Enter a code\". Home opens.",
-      "Type the right code and continue.",
-    ],
-    outcome: "Lee reaches the Join screen for Smith Family.",
-    setup: () => { smith(); },
-  },
-  {
-    id: "SC-09",
-    workflow: "Starting a new group",
-    title: "Start a new group (approved)",
-    tasks: ["T-06", "T-07"],
+    id: "SC-09", workflow: "Starting a new group", title: "Start a new group (approved)", tasks: ["T-06", "T-07"],
     who: "Rosa, who wants a group for her side of the family",
-    trigger: "Rosa opens the app with no code and taps \"Start a new group\".",
-    start: "/",
-    organiser: true,
-    testData: [["Group name", "Garcia Family"], ["Your name", "Rosa"], ["PIN", "any 4 numbers, twice"]],
+    arrives: "Opens the app's home page and taps \"Start a new group\"",
+    browser: "New: has never used the app",
+    start: "/", organiser: true,
+    testData: [["Group name", "Garcia Family"], ["Your name", "Rosa"], ["PIN", "any 4 numbers, typed twice"]],
     steps: [
-      "Tap \"Start a new group\" and fill in the form (currency is pre-chosen from your region).",
+      "Tap \"Start a new group\". Fill in Group name (currency is pre-chosen from your region).",
+      "Fill in \"Your name\" and the PIN block. These are the same fields and checks as the Join screen, including \"PINs match.\".",
       "Tap \"Send request\". The Waiting for approval screen appears.",
       "Play the organiser: in this panel, tap \"Approve request\".",
       "Back in the phone, tap \"Check now\" (the real app also checks by itself every 30 seconds).",
     ],
     outcome: "Rosa is moved into Garcia Family automatically, with \"\"Garcia Family\" is ready. Welcome!\".",
-    setup: () => {},
   },
   {
-    id: "SC-10",
-    workflow: "Starting a new group",
-    title: "Start a new group (declined)",
-    tasks: ["T-06", "T-08"],
+    id: "SC-10", workflow: "Starting a new group", title: "Start a new group (declined)", tasks: ["T-06", "T-08"],
     who: "Max, whose request the organiser turns down",
-    trigger: "Max asks for a group, and the organiser declines it.",
-    start: "/new",
-    organiser: true,
+    arrives: "Opens the app's home page and taps \"Start a new group\"",
+    browser: "New: has never used the app",
+    start: "/", organiser: true,
     testData: [["Group name", "Max's Mates"], ["Your name", "Max"]],
     steps: [
-      "Fill in the form and tap \"Send request\".",
+      "Tap \"Start a new group\", fill in the form the same way as SC-09, and tap \"Send request\".",
       "Play the organiser: tap \"Decline request\" in this panel.",
       "Tap \"Check now\" in the phone.",
       "Tap \"Send a new request\".",
     ],
-    outcome: "The declined message appears, and \"Send a new request\" brings back an empty form.",
-    setup: () => {},
+    outcome: "\"Your request wasn't approved\" appears, and \"Send a new request\" brings back an empty Start a new group form.",
   },
   {
-    id: "SC-11",
-    workflow: "Joining a group",
-    title: "Open an invite link when already in the group",
-    tasks: ["T-01"],
-    who: "Sam, already signed in on this phone",
-    trigger: "Sam taps the group's invite link again, perhaps from an old message.",
-    start: `/j/${SMITH_SHOWN}`,
-    testData: [["Browser", "already signed in as Sam"]],
-    steps: ["Nothing to do. Watch what happens when the link opens."],
-    outcome: "Sam goes straight into the group, with \"You're already in Smith Family.\" No join form.",
-    setup: () => {
-      const g = smith();
-      getState().browser.memberIds.push(g.members.find((m) => m.name === "Sam")!.id);
-    },
+    id: "SC-07", workflow: "Mistakes and limits", title: "PIN typo while joining", tasks: ["T-03"],
+    who: "Robin, typing quickly",
+    arrives: "Taps the invite link",
+    browser: "New: has never used the app",
+    start: `/j/${GROUP_CODE}`,
+    testData: [["Your name", "Robin"], ["Create a PIN", "1234"], ["Enter your PIN again", "9999"]],
+    steps: [
+      ...NEW_PERSON_STEPS("Robin").slice(0, 3),
+      "In \"Enter your PIN again\", type 9999. As soon as the 4th number is typed, \"The two PINs don't match. Try again.\" appears.",
+      "Fix the second PIN to 1234. The message changes to \"PINs match.\".",
+    ],
+    outcome: "The mismatch shows the moment it happens and clears when fixed. Nothing is sent until the PINs match.",
   },
   {
-    id: "SC-12",
-    workflow: "Mistakes and limits",
-    title: "Too many attempts from one network",
-    tasks: ["S-03"],
+    id: "SC-08", workflow: "Mistakes and limits", title: "Broken invite link", tasks: ["T-01"],
+    who: "Lee, whose link got cut off when it was copied",
+    arrives: "Taps a link with a wrong code",
+    browser: "New: has never used the app",
+    start: "/j/ABCD-EFGH",
+    testData: [["Link opened", "/j/ABCD-EFGH (no such group)"], ["Right code", GROUP_CODE]],
+    steps: [
+      "\"This invite didn't work\" appears, with an \"Enter a code\" button.",
+      "Tap \"Enter a code\". Home opens.",
+      "Type the right code and tap Continue.",
+    ],
+    outcome: "Lee reaches the same Join screen as SC-01.",
+  },
+  {
+    id: "SC-12", workflow: "Mistakes and limits", title: "Too many attempts from one network", tasks: ["S-03"],
     who: "Someone trying lots of codes from one network",
-    trigger: "This network has already made 10 failed attempts in the last 15 minutes.",
+    arrives: "Opens the app's home page",
+    browser: "This network already made 10 failed attempts in the last 15 minutes",
     start: "/",
     testData: [["Any code", "e.g. ABCD-EFGH"]],
     steps: ["Type any code and tap Continue."],
-    outcome: "A red alert says \"Too many attempts. Please wait 15 minutes and try again.\", and Continue is disabled.",
-    setup: () => { smith(); getState().ipFailures = 10; },
+    outcome: "A red alert above the card says \"Too many attempts. Please wait 15 minutes and try again.\", and Continue is greyed out.",
+    setup: () => { getState().ipFailures = 10; },
   },
 ];
 
 /** Scenarios in display order: grouped by workflow. */
 export const ORDERED: Scenario[] = WORKFLOWS.flatMap((w) => SCENARIOS.filter((s) => s.workflow === w));
 
-/** Fresh pretend server and browser for a scenario. */
+/** Fresh pretend server and browser for a scenario, always starting from the shared data (GR-8). */
 export function prepare(sc: Scenario) {
   setState(newState());
   try { localStorage.removeItem("lastGroup"); } catch {}
-  sc.setup();
+  sharedGroup();
+  sc.setup?.();
 }

@@ -16,8 +16,10 @@ export default defineConfig({
     reuseExistingServer: false,
   },
   projects: [
-    { name: "phone", use: { ...devices["Pixel 7"] }, testIgnore: /screens\.spec/ },
-    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /screens\.spec/, grep: /@desktop/ },
+    { name: "phone", use: { ...devices["Pixel 7"] }, testIgnore: /(screens|prototype)\.spec/ },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /(screens|prototype)\.spec/, grep: /@desktop/ },
     { name: "screens", use: { ...devices["Pixel 7"] }, testMatch: /screens\.spec/ },
+    // Walks every prototype scenario exactly as its card describes (needs `npm run prototype` first).
+    { name: "prototype", use: { ...devices["Desktop Chrome"], viewport: { width: 1400, height: 1000 } }, testMatch: /prototype\.spec/ },
   ],
 });
