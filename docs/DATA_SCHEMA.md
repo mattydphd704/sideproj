@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.2, approved by TPM except G16, which is being explained |
+| **Status** | v1.0, approved by TPM |
 | **Last updated** | 2026-11-21 |
 | **Database** | Cloudflare D1 (SQLite), one database per environment |
 | **Based on** | `GLOSSARY.md` rev 3 (Part B field catalogue, Part C lifecycles, Part D visibility), `ARCHITECTURE.md` v1.0 |
@@ -396,5 +396,5 @@ These continue the glossary's G-numbering. **G12 and G13 are in the backlog (B-0
 | G13 | A "specific members" item loses its last allowed viewer because that member was removed | **Backlog B-014. Interim v1 behaviour:** the item becomes visible **only to its owner** until the owner edits it. The owner sees a note: "No one can see this item." |
 | G14 | When an item is permanently deleted, what happens to its released-claim history? | **Accepted.** Delete it along with the item. The tombstone holds what the claimer needs. This keeps the "removed completely" promise in FR-7.2. |
 | G15 | Join rate limits | **Accepted.** 10 attempts per IP address per 15 minutes; 30 attempts per group code per hour |
-| G16 | Price storage | **Pending TPM.** Stored as a whole number of the currency's smallest unit (e.g. cents), with that price's own currency code. Shown in that currency, with no conversion. If no currency is found, the group's currency is used. |
+| G16 | Price storage | **Accepted.** Stored as a whole number of the currency's smallest unit (e.g. cents), with that price's own currency code. Shown in that currency, with no conversion. If no currency is found, the group's currency is used. |
 | G17 | `http://` (non-secure) product links | **Accepted.** Can be saved and shown, but auto-fill never fetches them |

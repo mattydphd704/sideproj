@@ -265,7 +265,7 @@ wrangler.toml              environments: local, dev, prod
 
 ## 10. Architecture decisions (ADR summary)
 
-Each of these will get its own file in `docs/DECISIONS/` once approved.
+Each one has its own record in `docs/DECISIONS/` (AD-nn = ADR-nn). AD-12 covers the schema conventions.
 
 | ID | Decision | Status |
 |---|---|---|

@@ -213,8 +213,8 @@ These are **logical** fields, meaning the information we need to capture, not th
 | `url` | URL | Either `url` or `description` | User | Viewers of the item | Only `http` or `https` links. Up to 2,000 characters. | FR-3.1a |
 | `description` | text | Either `url` or `description` | User | Viewers of the item | For a product with no link. Up to 500 characters (G11). | FR-3.1a |
 | `product_name` | text | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
-| `price` | decimal | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
-| `currency` | ISO 4217 code | If `price` is set | Auto-fill, editable | Viewers of the item | Defaults to the group's `currency` (G9). | FR-3.1b |
+| `price` | integer, in the currency's smallest unit (e.g. cents) | No | Auto-fill, editable | Viewers of the item | Stored as a whole number so totals are exact: $19.99 is stored as `1999` (G16). | FR-3.1b |
+| `currency` | ISO 4217 code | If `price` is set | Auto-fill, editable | Viewers of the item | The price's **own** currency, shown as-is with no conversion. The group's `currency` is used only when none is found (G9, G16). | FR-3.1b |
 | `image_url` | URL | No | Auto-fill | Viewers of the item | | FR-3.1b |
 | `retailer` | text | No | Auto-fill | Viewers of the item | Taken from the link's domain. | FR-3.1b |
 | `size` | text | No | Auto-fill, editable | Viewers of the item | Matters more for some product categories, e.g. clothing. | FR-3.1b |
@@ -348,5 +348,5 @@ The TPM confirmed these field-level decisions on 2026-11-21.
 | G13 | Items left with no viewers | Backlog B-014. Interim: owner only |
 | G14 | Claim history when an item is permanently deleted | Deleted with the item. The tombstone remains. |
 | G15 | Join rate limits | 10 per IP address per 15 minutes; 30 per group code per hour |
-| G16 | Price storage | *Pending TPM* |
+| G16 | Price storage | Whole number of the smallest unit, plus the price's own currency code. Shown without conversion. Group currency is the fallback. |
 | G17 | `http://` links | Saved, but never auto-filled |
