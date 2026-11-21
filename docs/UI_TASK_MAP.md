@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.1, awaiting TPM review |
+| **Status** | DRAFT v0.2, awaiting TPM review of L1–L18 and G19–G23 |
 | **Last updated** | 2026-11-21 |
 | **Branch** | `claude/sharp-knuth-889h6a-ui-workflow` |
 | **Design language** | **shadcn/ui** (TPM decision, ADR-15) |
@@ -295,7 +295,7 @@ The glossary uses precise internal terms such as "claim" and "Giver's choice". O
 
 | # | Point | Proposed |
 |---|---|---|
-| G18 | **APIs not built yet.** Items, claims, the dashboard, fair share, delete, archive, admin and group requests are planned (ARCHITECTURE §7) but not built; they were step 4, now paused. The UI can be designed now, but most screens can't be tested end to end until those APIs exist. | Design all maps now. Build the UI in the same order as the APIs, either by resuming step 4 here first or building both together on this branch. **TPM decision.** |
+| G18 | **Decided: build the APIs and UI together, screen by screen (TPM, 2026-11-21).** APIs not built yet: Items, claims, the dashboard, fair share, delete, archive, admin and group requests are planned (ARCHITECTURE §7) but not built; they were step 4, now paused. The UI can be designed now, but most screens can't be tested end to end until those APIs exist. | Design all maps now. Build the UI in the same order as the APIs, either by resuming step 4 here first or building both together on this branch. **TPM decision.** |
 | G19 | **Seeing who's in the group (T-12).** There's no "list members" API for members yet. Only the code lookup exists. | Add `GET /api/groups/:id/members` (names and joined or not, no IDs beyond what the UI needs) |
 | G20 | **"Join another group" from inside the app (T-13).** Not in the brief, but needed for FR-1.9 if someone gets a second invite while already in one group. Opening the invite link works anyway. | Add it to the group switcher menu |
 | G21 | **Last tab remembered (§5).** A per-browser convenience. | Store in the browser (local storage); fine if it's lost |

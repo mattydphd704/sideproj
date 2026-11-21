@@ -6,6 +6,9 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 
 ### Added: UI and workflow, branch `claude/sharp-knuth-889h6a-ui-workflow` (2026-11-21)
 - ADR-15: shadcn/ui is the design language.
+- G18 decided: build the APIs and the UI together, screen by screen.
+- `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
+- AR-08 (shadcn packages) prepared for approval.
 - `docs/UI_TASK_MAP.md` v0.1: 50 user tasks and system events (T-01 to T-59, S-01 to S-07), an end-to-end workflow map, an admin workflow map, the lifecycle of one gift across people, the screen map, 18 wording decisions (L1 to L18) and open points G18 to G23.
 
 ### Process (2026-11-21)

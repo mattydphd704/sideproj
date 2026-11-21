@@ -299,6 +299,7 @@ None of these have been granted. **I won't use any of them until you approve eac
 | AR-04 | **Cloudflare Access (Zero Trust)** enabled on the account, with your email as the only allowed admin | Admin sign-in (AD-04) | Before admin features are tested in dev | Free plan. You do the setup in the dashboard, and I'll give you the steps. |
 | AR-05 | *(Optional)* custom domain on Cloudflare | Nicer URL than `*.workers.dev` | Before prod | Costs about $10–$15 a year. |
 | AR-06 | *(Optional, later)* GitHub Actions running tests on pull requests | Automated checks before merging | After v1 is working | No secrets needed for tests. Deploys stay manual. |
+| AR-08 | **shadcn/ui build packages** (ADR-15): tailwindcss 4.3.5, @tailwindcss/vite 4.3.5, radix-ui 1.8.1, class-variance-authority 0.7.1, clsx 2.1.1, tailwind-merge 3.7.0, lucide-react 1.70.0, sonner 2.0.8, input-otp 1.5.0, tw-animate-css 1.4.0 | To build the UI | Before the first screen is built | Checked 2026-11-21 without installing: compatible with React 19 and Vite 8, 0 known vulnerabilities, no install scripts, 111 packages including their dependencies. All at least 14 days old. **Awaiting TPM approval.** |
 | AR-07 | **Prod deploy rights** | To deploy `giftlist-prod` | Only after the full review and your sign-off | Separate token. Granted per release, or you deploy yourself. |
 
 ---
