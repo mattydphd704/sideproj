@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "audit": "npm audit --omit=optional"
+    "audit": "npm audit --omit=optional",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "hono": "4.13.16",

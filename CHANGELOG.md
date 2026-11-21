@@ -19,3 +19,8 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `migrations/0001_init.sql`: all 12 tables from `DATA_SCHEMA.md` v1.0.
 - 23 schema tests: foreign keys, length limits (G1, G4, G6), unique display names, group codes, link limits (G8), price and currency (G16), URL format, one live claim per item including 5 simultaneous claims, and cascade on permanent delete (G14).
 - Fixed BUG-001 (audit findings) and worked around BUG-002 (npm crash).
+
+### Added: test tracking (2026-11-21)
+- `docs/TEST_PLAN.md`: every test with an ID, what it proves, and requirement and success-criteria coverage (137 tests: 32 passing, 97 planned, 8 blocked on access).
+- `npm run verify` (`scripts/verify.mjs`): runs 9 environment checks plus the full test suite and writes `docs/TEST_RESULTS.md`, with run history.
+- Test IDs added to every test name for traceability.

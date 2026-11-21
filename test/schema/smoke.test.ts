@@ -5,7 +5,7 @@ let ctx: Awaited<ReturnType<typeof freshDb>>;
 beforeAll(async () => { ctx = await freshDb(); });
 afterAll(async () => { await ctx.dispose(); });
 
-test("all 12 tables exist", async () => {
+test("[SMK-01] all 12 tables exist", async () => {
   const { results } = await ctx.db
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations' ORDER BY name")
     .all<{ name: string }>();
