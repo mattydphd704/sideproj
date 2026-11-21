@@ -1,106 +1,344 @@
 # Glossary
 
-The project's shared vocabulary. Every term used in the brief, architecture, schema, code and UI should match an entry here. When a term changes, update it here first.
+The project's shared vocabulary and field catalogue. Every term used in the brief, architecture, schema, code and UI should match an entry here. When a term or field changes, update it here first. `DATA_SCHEMA.md` will be built from Part B.
 
 | | |
 |---|---|
-| **Last updated** | 2026-11-21 (brief v0.8) |
+| **Last updated** | 2026-11-21 (brief v0.8, glossary rev 2) |
+| **Status** | DRAFT, awaiting TPM review |
 
-## Roles and access
+**Key:**
+- **(P)**: a value the engineer proposed that the TPM hasn't confirmed yet. Each is listed in [Part E](#part-e-open-points-for-review).
+- **FR-x / NFR-x**: the requirement in `PROJECT_BRIEF.md`.
+- **B-xxx**: an item in `BACKLOG.md`.
+- **PR-xxx**: an item in `PR_TRACKER.md`.
+
+---
+
+# Part A: Terms
+
+## A1. People and roles
+
+| Term | Definition | Ref |
+|---|---|---|
+| **Admin** | The single global operator (the TPM) in v1. Creates groups, approves or declines group requests, adds and deletes members, resets PINs, and archives or restores lists. Can also be a member of any group. Signs in to the **admin area** with the **admin credential**. Per-group admins are in the backlog (B-001). | FR-2 |
+| **Visitor** | Someone using the app who isn't a member of any group. A visitor can join with a code or invite link, or submit a group request. | FR-1 |
+| **Requester** | A visitor who has submitted a group request. Once the request is approved, they become the new group's first joined member. | FR-1.2 |
+| **Member** | A person in a group, identified by their display name. Has exactly one list per group. One person can be a member of several groups. | FR-1 |
+| **Pending member** | A member the admin added by name who hasn't visited yet, so has no PIN. They have no list and can't be a recipient, a giver or a visibility target. The first person to open the group and pick that name sets the PIN. | FR-2.2, FR-5.8 |
+| **Joined member** | A member who has visited and set a PIN. Only joined members take part in lists, claims and fair share. | FR-5.8 |
+| **Owner** | The member whose list an item is on. | FR-3 |
+| **Claimer** | The member who claimed an item. | FR-5 |
+| **Recipient** | The owner of an item, seen from a giver's side: the person receiving the gift. | FR-5 |
+| **Giver** | Any joined member other than the recipient, who could claim the recipient's items. | FR-6 |
+
+## A2. Identity and access
+
+| Term | Definition | Ref |
+|---|---|---|
+| **Display name** | A member's name as shown to the group. Must be unique within a group, ignoring upper and lower case. | FR-1.3, Q12 |
+| **PIN** | A 4 to 6 digit code a member creates when joining. It's needed only for **recovery**, not on normal visits. Stored only as a salted hash. | FR-1.4, NFR-4 |
+| **PIN lockout** | After 5 wrong PIN attempts, recovery for that member is locked for 15 minutes. | NFR-4 |
+| **PIN reset** | The admin clears a member's PIN. The member sets a new one on their next recovery. | FR-2.6 |
+| **Member token** | A random secret stored in the browser that identifies a member on later visits. Each browser or device has its own token, and one member can have several. | FR-1.5 |
+| **Recovery** | Restoring a member's identity in a new browser: enter the group code (or open the invite link), pick your display name, enter your PIN. A new member token is issued. | FR-1.7 |
+| **Admin area** | The separate part of the app where the admin works. | FR-2 |
+| **Admin credential** | The secret the admin uses to sign in to the admin area. It's separate from any member PIN. | NFR-7 |
+| **Surprise rule** | An item's owner never receives any claim information about their own items: whether they're claimed, who claimed them, whether they're purchased, or anything about fair share. The **server** enforces this. | FR-3.4, NFR-5 |
+
+## A3. Groups
+
+| Term | Definition | Ref |
+|---|---|---|
+| **Group** | A set of members who share lists with each other, such as a family. Groups persist indefinitely in v1 (B-010). | FR-1 |
+| **Group name** | The group's human-readable name, such as "Smith Family". | FR-2.1 |
+| **Group code** | A hard-to-guess code that lets someone join a group. | FR-1.1, NFR-3 |
+| **Invite link** | A URL with the group code built in, shared from inside a group using the phone's share menu or copy-to-clipboard. Opening it starts the join flow. | FR-1.2 |
+| **Group request** | A visitor's request for a new group. It includes the group name they want, plus their own display name and PIN. The admin approves or declines it. | FR-1.2 |
+| **Waiting for approval** | The screen a requester sees while their request is pending. It checks back automatically. | FR-1.2 |
+| **Group switcher** | The UI control that lists every group this browser belongs to and moves between them. | FR-1.9 |
+| **Dashboard** | The main view inside a group: every other member's items that the viewer is allowed to see, grouped by member. Refreshes automatically about every 30 seconds and when the page regains focus. | FR-4 |
+
+## A4. Lists and items
+
+| Term | Definition | Ref |
+|---|---|---|
+| **List** | A member's single, ongoing wish list within a group. *"The list is the list"*: a list is never deleted as a whole. A list has three sections: **Active**, **Deleted** and **Archived**. | FR-3.1, FR-7 |
+| **Active list** | The live section of a list: items that aren't deleted or archived. | FR-7 |
+| **Item** | One thing a member wants, such as "Camera". An item has one or more product links, depending on its mode. | FR-3 |
+| **Item mode** | How specific the owner wants the gift to be. Either **Exact product** or **Giver's choice**. | FR-3.1a |
+| ↳ **Exact product** | "Get me this specific product." Allows exactly **one** product link, which can be a URL or a description. | FR-3.1a |
+| ↳ **Giver's choice** | "Pick one you like. Here are some examples." Allows **several** reference links. | FR-3.1a |
+| **Product link** | One URL or product description attached to an item, with product details that are filled in automatically or entered by hand. | FR-3.1a |
+| **Auto-fill** | The app reads a product link and pre-fills product details. The owner can edit anything it fills in. Saving the item never waits for auto-fill. The method and fields are being worked out in an experiment, PR-002. | FR-3.1b |
+| **Visibility** | Who can see an item: **Everyone** in the group, or **Only specific members**, chosen from the joined members. Members an item is hidden from see nothing of it, not even a placeholder. | FR-3.2, Q13 |
+| **Star** | A marker an owner puts on an item to show it's important to them. Any number of items can be starred. Visible to everyone who can see the item. | FR-3.5 |
+| **Item status** | Where an item is in its lifecycle: `active`, `deleted` or `archived`. See C1. | FR-7 |
+| **Delete (soft delete)** | The owner removes an item from the active list. It goes to the Deleted section, greyed out, for up to **90 days**. Other members see it flagged **"Deleted by owner"** and can't claim it. Any claim on it stays. | FR-7.1 |
+| **Restore (item)** | Moving a soft-deleted item back to the active list. Any claim on it is kept, and the surprise rule still applies. | FR-7.1 |
+| **Permanent delete** | Removing an item for good, either because the owner chooses to or automatically after 90 days in Deleted. It disappears for everyone. Can't be undone. | FR-7.2 |
+| **Tombstone** | What a claimer keeps after an item they'd claimed is permanently deleted: the item's title and the recipient's name, marked *"No longer on <name>'s list"*. The claimer can dismiss it. | FR-7.2 |
+| **Archive** | The admin moves every current item in all of a group's lists, including deleted ones, into the read-only, unclaimable Archived section. Lists stay in place for new items. Admin only in v1. | FR-7.3 |
+| **Archive batch** | The record of one archive: its date, who ran it, and each item's state beforehand. Used to restore the archive. | FR-7.3 |
+| **Restore archive** | An admin action that puts every item in an archive batch, and every claim on those items, back exactly as it was before archiving. Deleted items return with the days they had left. | FR-7.4 |
+| **Re-add** | The owner copies an archived item to their active list as a fresh, unclaimed item. | FR-7.3, Q30 |
+| **Auto-archive** | *(Backlog B-011, not in v1.)* Archiving that happens automatically after 12 months. | B-011 |
+
+## A5. Claims
+
+| Term | Definition | Ref |
+|---|---|---|
+| **Claim** | A member reserving another member's item to give it to them. An item has at most one active claim *(partial claims are being tested as PR-001)*. | FR-5 |
+| **Unclaim** | The claimer releasing a claim, which makes the item available again. | FR-5.4 |
+| **Purchased** | A flag the claimer sets on their claim to record that they've bought the gift. Visible **only to the claimer**. | FR-5.5, Q24 |
+| **Claimed list** | A member's view of everything they've claimed, grouped and sorted by recipient name. Has sections for active claims, archived claims and tombstones. | FR-5.3 |
+| **Greyed out** | How a claimed or soft-deleted item appears to members other than its owner. Claimed items also show "Claimed by <name>". | FR-5.2 |
+| **Updated flag** | A marker shown to the claimer when the owner edits an item after it was claimed. It clears once the claimer has seen it. | FR-5.7 |
+| **Deleted by owner** | The flag that other members, and the claimer, see on a soft-deleted item. | FR-7.1 |
+| **Available item** | An item that is active, unclaimed and not deleted or archived. | FR-6.2 |
+
+## A6. Fair share (initial logic, to be tuned in test: PR-003)
+
+| Term | Definition | Ref |
+|---|---|---|
+| **Fair share** | The rule that one member shouldn't claim so many of a person's items that others have nothing left to give that person. | FR-6 |
+| **Waiting giver** | For a recipient, a joined member who isn't the recipient or the current claimer and hasn't claimed anything for that recipient yet. | FR-6.1 |
+| **Fair-share threshold** | A limit that's recalculated on every claim. A claim breaches it if, once the claim is made: **(a)** the available items number fewer than waiting givers × buffer, or **(b)** any waiting giver has no available item they're allowed to see. | FR-6.3 |
+| **Fair-share buffer** | The multiplier in rule (a). Defaults to 1.0, and the admin can change it. | FR-6.3 |
+| **Fair-share alert** | A warning shown before **every** claim that breaches the threshold, with **Claim anyway** or **Cancel**. It's a warning, not a block. | FR-6.4, Q29 |
+| **Fair-share nudge** | A banner on the claimer's Claimed list, for a recipient they're over the threshold for, suggesting they unclaim some items. | FR-6.5 |
+
+## A7. Process and environments
 
 | Term | Definition |
 |---|---|
-| **Admin** | The single global operator (TPM) in v1. Per-group admins are in the backlog (B-001). The only person who creates groups in v1. Can add and delete members in any group and approve or decline group requests. Can also be a member. Signs in to a separate admin area with an admin credential. |
-| **Member** | A person in a group, identified by a display name. A member has one list per group. |
-| **Pending member** | A member the admin added by name who hasn't opened the app yet, so has no PIN set. The first person to open the group with that name sets the PIN. Until then, they have no list and can't be a recipient, a giver or a visibility target. |
-| **Joined member** | A member who has visited and set a PIN. Only joined members take part in lists, claims and fair share. |
-| **Visitor** | Someone using the app who isn't a member of any group. |
-| **Display name** | A member's name as shown to the group. Must be unique within a group. |
-| **PIN** | A 4 to 6 digit code a member creates when joining. It's used only to recover their identity on a new device or after clearing browser data. Stored as a salted hash. |
-| **Member token** | A random secret stored in the browser that identifies the member on later visits, so they don't have to enter a PIN. There is one per group membership. |
-| **Recovery** | Restoring a member's identity on a new browser by choosing the group, picking their display name and entering their PIN. |
-
-## Groups
-
-| Term | Definition |
-|---|---|
-| **Group** | A set of members who share lists with each other, such as a family. |
-| **Group code** | A hard-to-guess code that lets someone join a group. |
-| **Invite link** | A URL with the group code built in, shared from inside a group. Opening it starts the join flow. |
-| **Group request** | A visitor's request for a new group. It holds the group name the requester wants, plus their display name and PIN. It's approved or declined by the admin. |
-| **Request status** | The state of a group request: `pending`, `approved` or `declined`. |
-| **Group switcher** | The UI control that lists every group the browser belongs to and moves between them. |
-
-## Lists and items
-
-| Term | Definition |
-|---|---|
-| **List** | A member's single, ongoing wish list within a group. |
-| **Item** | One thing a member wants, such as "Camera". An item has one or more product links, depending on its mode. |
-| **Item mode** | How specific the owner wants the gift to be. One of: |
-| ↳ **Exact product** | The giver should buy exactly this product. Allows **one** product link *or* a product description. |
-| ↳ **Giver's choice** | The giver picks something that fits. Allows **several** reference links as examples. |
-| **Product link** | A URL attached to an item, plus product details that the app fills in from the URL where it can. |
-| **Auto-fill** | The app reads a product link and pre-fills details such as product name, price, size and colour. The owner can then edit them. *Scope and method are subject to a test spike: see "Item fields" below.* |
-| **Visibility** | Who can see an item: **everyone** in the group, or **only specific members**. Members an item is hidden from see nothing of it, not even a placeholder, and the server never sends it to them. |
-| **Star** | A marker an owner puts on an item to show it's important to them. Any number of items can be starred. |
-| **Active list** | The live part of a member's list: items that aren't deleted or archived. |
-| **Deleted (soft delete)** | An item the owner has deleted. It's greyed out at the bottom of the owner's list for up to 90 days and can be restored. Other members see it flagged "Deleted by owner" and can't claim it. |
-| **Deleted by owner** | The flag other members, and the claimer, see on a soft-deleted item. Replaces the earlier "Removed by owner". |
-| **Restore** | Moving a soft-deleted item back to the active list. Any existing claim is kept. |
-| **Permanent delete** | Removing an item for good, either by the owner or automatically after 90 days in Deleted. Can't be undone. |
-| **Tombstone** | What's left on a claimer's Claimed list after a claimed item is permanently deleted: the title and recipient, marked "No longer on <name>'s list". The claimer can dismiss it. |
-| **Archive / Archived** | Moving every current item in a group's lists into a read-only, unclaimable "Archived" section. Done by the admin, or automatically. Lists stay in place for new items. |
-| **Archive batch** | The record of one archive: its date, who ran it, and each item's state beforehand. Used to restore the archive. |
-| **Restore archive** | An admin action that returns every item in an archive batch, and its claims, to the state it was in before archiving. |
-| **Auto-archive** | *(Backlog B-011, not in v1.)* Archiving that happens automatically after 12 months. |
-| **Re-add** | Creating a fresh, unclaimed copy of an archived item on the owner's active list. |
-| **Dashboard** | The main view: every other member's visible items, grouped by member. |
-
-## Claims
-
-| Term | Definition |
-|---|---|
-| **Claim** | A member reserving another member's item to give it to them. One item can have only one active claim *(partial claims are being tested separately, see PR-001)*. |
-| **Claimer** | The member who claimed an item. |
-| **Recipient** | The owner of a claimed item, meaning the person receiving the gift. |
-| **Unclaim** | The claimer releasing a claim, which makes the item available again. |
-| **Purchased** | A flag the claimer sets on their claim to record that they've bought the gift. Visible **only to the claimer**. |
-| **Claimed list** | A member's view of everything they've claimed, sorted by recipient name. |
-| **Greyed out** | How a claimed item appears to other members, along with the claimer's name. Never shown to the recipient. |
-| **Surprise rule** | An item's owner never receives any claim information about it. The server enforces this. |
-| **Updated flag** | A marker shown to the claimer when the owner edits an item after it was claimed. |
-| **Fair share** | The rule that one member shouldn't claim so many of a person's items that others have nothing left to give that person. |
-| **Waiting giver** | For a recipient, a joined member of the group (not the recipient and not the claimer) who hasn't claimed anything for that recipient yet. |
-| **Available item** | An item that is unclaimed, not deleted and not archived. |
-| **Fair-share threshold** | A floating limit that's breached when the available items number fewer than waiting givers × buffer, or when any waiting giver has no available item they're allowed to see. |
-| **Fair-share buffer** | The multiplier in the threshold. Defaults to 1.0, and the admin can change it. The fair-share logic is initial and will be tuned in test (PR-003). |
-| **Fair-share alert** | The warning shown before **every** claim that breaches the threshold, with "Claim anyway" or "Cancel". |
-| **Fair-share nudge** | The banner on a claimer's Claimed list while they're over the threshold for a recipient, suggesting they unclaim some items. |
-
-## Item fields (working list, to be refined by the auto-fill test spike)
-
-These are the fields we expect to capture or auto-fill for each **product link**. The spike will show which fields matter for which product categories. Update this table with the results.
-
-| Field | Required | Source | Notes |
-|---|---|---|---|
-| `url` | Yes (or `description`) | User | In Exact product mode, either a URL or a description is allowed. |
-| `description` | Yes (or `url`) | User | Free-text product description, for when there's no link. |
-| `product_name` | No | Auto-fill, editable | |
-| `price` | No | Auto-fill, editable | Plus currency. |
-| `image_url` | No | Auto-fill | |
-| `retailer` | No | Auto-fill | Derived from the domain. |
-| `size` | No | Auto-fill, editable | Relevance depends on category, e.g. clothing or shoes. |
-| `color` | No | Auto-fill, editable | |
-| `notes` | No | User | Anything else, e.g. "any colour except pink". |
-
-Item-level fields (on the item, not each link): `title` (required), `mode`, `visibility`, `starred` (true or false).
-
-## Process
-
-| Term | Definition |
-|---|---|
-| **PR-nnn** | A candidate feature with an ID in `docs/PR_TRACKER.md`. Each one is built and tested as its own scenario and delivered as its own GitHub pull request, linked from the tracker. |
-| **Dev/test** | Where all building and testing happen. |
-| **Prod** | The live environment. Deploying to it requires full TPM review and sign-off. |
+| **PR-nnn** | A candidate feature tracked in `PR_TRACKER.md`. Each one is built and tested as its own scenario and delivered as its own GitHub pull request. |
+| **B-nnn** | A deferred item tracked in `BACKLOG.md`. |
+| **BUG-nnn** | A defect tracked in `BUGS.md`. |
+| **Dev/test** | The environments where all building and testing happen. |
+| **Prod** | The live environment. Deploying to it requires a full review and TPM sign-off. |
 | **Spike** | A short, time-boxed experiment to answer a technical question before we commit to a design. |
+
+---
+
+# Part B: Field catalogue
+
+These are **logical** fields, meaning the information we need to capture, not the final database columns. `DATA_SCHEMA.md` will turn them into tables, types and indexes.
+
+**Columns:**
+- **Set by:** who or what provides the value. `User` is the person entering it, `System` is generated by the app, `Auto-fill` is extracted from a link, `Admin` is set by the admin.
+- **Visible to:** who can ever receive the value from the server. This is how the surprise rule and visibility rules are enforced.
+
+## B1. Group
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `group_id` | id | Yes | System | Internal | | |
+| `name` | text | Yes | Admin, or Requester through a request | Members, Admin | 1–60 characters **(P)**. | FR-2.1 |
+| `group_code` | text | Yes | System | Members, Admin | 8 characters from an alphabet without look-alike characters, shown as `XXXX-XXXX` **(P)**. Unique. Join attempts are rate-limited. | NFR-3 |
+| `fair_share_buffer` | decimal | Yes | Admin | Admin | Default 1.0. Set per group **(P)**. | FR-6.3 |
+| `created_at` | timestamp | Yes | System | Admin | | |
+| `created_by` | ref → Admin or Group request | Yes | System | Admin | Shows whether the admin created the group directly or approved a request. | FR-1.2 |
+| `last_archived_at` | timestamp | No | System | Admin | Kept so auto-archive (B-011) can be applied retroactively later. | B-011 |
+
+## B2. Member
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `member_id` | id | Yes | System | Internal | | |
+| `group_id` | ref → Group | Yes | System | Internal | | |
+| `display_name` | text | Yes | User, or Admin when adding | Members, Admin | 1–30 characters **(P)**. Unique within the group, ignoring upper and lower case. Leading and trailing spaces are removed. | Q12 |
+| `status` | enum | Yes | System | Members, Admin | `pending` or `joined`. See C2. | FR-5.8 |
+| `pin_hash` | hash | Once joined | User (hashed by System) | **Never sent anywhere** | 4–6 digits before hashing, stored with a salt. Empty while pending, or after a PIN reset. | NFR-4 |
+| `failed_pin_attempts` | integer | Yes | System | Internal | Goes back to 0 after a successful recovery. | NFR-4 |
+| `locked_until` | timestamp | No | System | Internal | Set after the 5th wrong attempt, to now + 15 minutes. | NFR-4 |
+| `is_admin` | boolean | Yes | System | Internal | True when this membership belongs to the admin. | FR-2.5 |
+| `added_by` | enum | Yes | System | Admin | `self` (joined with a code or link), `admin` (added by hand) or `request` (the requester of an approved group request). | FR-2.2 |
+| `joined_at` | timestamp | No | System | Admin | When the PIN was first set. | |
+| `last_seen_at` | timestamp | No | System | Admin | | |
+| `created_at` | timestamp | Yes | System | Admin | | |
+
+## B3. Member token (one per browser or device)
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `token_hash` | hash | Yes | System | **Never sent anywhere** | The browser holds the raw token in a cookie. The server stores only its hash. | FR-1.5 |
+| `member_id` | ref → Member | Yes | System | Internal | | |
+| `created_at` / `last_used_at` | timestamp | Yes | System | Internal | | |
+| `revoked_at` | timestamp | No | System | Internal | Set when the member is deleted, and **(P)** on a PIN reset. | FR-2.6 |
+
+## B4. Group request
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `request_id` | id | Yes | System | Internal | | |
+| `requested_group_name` | text | Yes | Requester | Admin, Requester | Same rules as the group's `name`. | FR-1.2 |
+| `requester_display_name` | text | Yes | Requester | Admin, Requester | Same rules as `display_name`. | FR-1.2 |
+| `requester_pin_hash` | hash | Yes | Requester (hashed) | **Never sent anywhere** | Moved to the new member when the request is approved. | FR-1.2 |
+| `request_token_hash` | hash | Yes | System | **Never sent anywhere** | Lets the requester's browser check its status and move into the group automatically. | FR-1.2 |
+| `status` | enum | Yes | System, Admin | Admin, Requester | `pending`, `approved` or `declined`. See C5. | FR-1.2 |
+| `created_at` / `decided_at` | timestamp | Yes / No | System | Admin | | |
+| `group_id` | ref → Group | When approved | System | Internal | The group created by approving the request. | |
+
+## B5. Item
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `item_id` | id | Yes | System | Internal | | |
+| `owner_member_id` | ref → Member | Yes | System | Viewers of the item | The owner must be a joined member. | FR-5.8 |
+| `title` | text | Yes | User | Viewers of the item | 1–100 characters **(P)**, e.g. "Camera". | FR-3.1 |
+| `mode` | enum | Yes | User | Viewers of the item | `exact_product` or `givers_choice`. | FR-3.1a |
+| `notes` | text | No | User | Viewers of the item | Item-level notes, e.g. "any brand, under $300". Up to 500 characters **(P)**. | **(P)** |
+| `visibility` | enum | Yes | User | Owner | `everyone` or `specific_members`. Default `everyone`. | FR-3.2 |
+| `visible_to` | list of refs → Member | If `specific_members` | User | **Owner only** | At least one joined member, never the owner. Other viewers aren't told who else can see the item. | FR-3.2, Q13 |
+| `starred` | boolean | Yes | User | Viewers of the item | Default false. | FR-3.5 |
+| `status` | enum | Yes | System | Viewers of the item | `active`, `deleted` or `archived`. See C1. | FR-7 |
+| `deleted_at` | timestamp | When deleted | System | Owner | Starts the 90-day countdown. | FR-7.1 |
+| `deleted_days_remaining` | integer | When archived from deleted | System | Internal | Freezes the countdown while the item is archived. Used by Restore archive. | FR-7.3 |
+| `archive_batch_id` | ref → Archive batch | When archived | System | Internal | | FR-7.3 |
+| `readded_from_item_id` | ref → Item | No | System | Internal | Set on an item copied by Re-add. Lets us spot duplicates after Restore archive. | FR-7.4 |
+| `created_at` | timestamp | Yes | System | Viewers of the item | | |
+| `content_updated_at` | timestamp | Yes | System | Internal | Changes only when the item's content, or one of its product links, is edited. Drives the claimer's updated flag. | FR-5.7 |
+
+"Viewers of the item" means the owner, plus the joined members the item's visibility allows.
+
+## B6. Product link
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `link_id` | id | Yes | System | Internal | | |
+| `item_id` | ref → Item | Yes | System | Internal | | |
+| `position` | integer | Yes | System | Viewers of the item | The display order. | |
+| `url` | URL | Either `url` or `description` | User | Viewers of the item | Only `http` or `https` links. Up to 2,000 characters. | FR-3.1a |
+| `description` | text | Either `url` or `description` | User | Viewers of the item | For a product with no link. Up to 500 characters **(P)**. | FR-3.1a |
+| `product_name` | text | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
+| `price` | decimal | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
+| `currency` | ISO 4217 code | If `price` is set | Auto-fill, editable | Viewers of the item | Defaults to the group's currency **(P)**. | FR-3.1b |
+| `image_url` | URL | No | Auto-fill | Viewers of the item | | FR-3.1b |
+| `retailer` | text | No | Auto-fill | Viewers of the item | Taken from the link's domain. | FR-3.1b |
+| `size` | text | No | Auto-fill, editable | Viewers of the item | Matters more for some product categories, e.g. clothing. | FR-3.1b |
+| `color` | text | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
+| `notes` | text | No | User | Viewers of the item | Notes about this one link, e.g. "the 64 GB version". | |
+| `autofill_status` | enum | Yes | System | Owner | `not_applicable`, `pending`, `succeeded`, `partial` or `failed`. | FR-3.1b |
+| `autofill_fetched_at` | timestamp | No | System | Internal | | |
+| `user_edited_fields` | list | No | System | Internal | Fields the owner has overridden, so a later auto-fill never overwrites them. | FR-3.1b |
+
+**Rules by item mode:**
+- **Exact product:** exactly **1** link, which has either a `url` or a `description`.
+- **Giver's choice:** 1 to 10 links **(P)**. Each link has a `url` or a `description`.
+
+The auto-fill experiment (PR-002) will confirm which detail fields matter for each product category.
+
+## B7. Claim
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `claim_id` | id | Yes | System | Internal | | |
+| `item_id` | ref → Item | Yes | System | **Never the owner** | At most one active claim per item, enforced by the database. | FR-5, NFR-2 |
+| `claimer_member_id` | ref → Member | Yes | System | Joined members who can see the item, **except the owner** | Shown as "Claimed by <name>". | FR-5.2, FR-3.4 |
+| `status` | enum | Yes | System | Claimer | `active`, `frozen` (the item is archived) or `released`. See C3. | FR-5.4, FR-7.3 |
+| `purchased` | boolean | Yes | Claimer | **Claimer only** | Default false. | FR-5.5, Q24 |
+| `purchased_at` | timestamp | No | System | Claimer only | | |
+| `claimed_at` | timestamp | Yes | System | Claimer | | |
+| `released_at` | timestamp | No | System | Internal | Kept for history **(P)**. | FR-5.4 |
+| `last_seen_item_version_at` | timestamp | Yes | System | Internal | When the updated flag was last cleared. The flag shows while this is earlier than the item's `content_updated_at`. | FR-5.7 |
+| `fair_share_override` | boolean | Yes | System | Internal | True if the claimer chose "Claim anyway". Used to tune fair share in PR-003. | FR-6.4 |
+
+## B8. Tombstone
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `tombstone_id` | id | Yes | System | Internal | | |
+| `claimer_member_id` | ref → Member | Yes | System | Claimer only | | FR-7.2 |
+| `recipient_name_snapshot` | text | Yes | System | Claimer only | A copy of the recipient's display name at the time of deletion. | FR-7.2 |
+| `item_title_snapshot` | text | Yes | System | Claimer only | A copy of the item title at the time of deletion. | FR-7.2 |
+| `was_purchased` | boolean | Yes | System | Claimer only | Copied from the claim. | FR-7.2 |
+| `created_at` / `dismissed_at` | timestamp | Yes / No | System | Claimer | How long tombstones are kept is decided later (B-009). | B-009 |
+
+## B9. Archive batch
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `archive_batch_id` | id | Yes | System | Admin | | FR-7.3 |
+| `group_id` | ref → Group | Yes | System | Admin | | |
+| `archived_at` / `archived_by` | timestamp / ref → Admin | Yes | System | Admin | Members see the date as "Archived <date>". | FR-7.3 |
+| `restored_at` / `restored_by` | timestamp / ref → Admin | No | System | Admin | Empty until the batch is restored. | FR-7.4 |
+| *Per item, recorded at archive time:* `item_id`, `prior_status` (`active` or `deleted`), `deleted_days_remaining` | | Yes | System | Internal | Restore archive puts each item back to its `prior_status`. | FR-7.4 |
+
+## B10. Settings and admin
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `admin_credential_hash` | hash | Yes | Admin | **Never sent anywhere** | How it's stored and rotated is decided in the architecture doc. | NFR-7 |
+| `soft_delete_days` | integer | Yes | Config | Internal | 90. A setting, not hard-coded. | FR-7.1 |
+| `pin_max_attempts` / `pin_lockout_minutes` | integer | Yes | Config | Internal | 5 / 15. | NFR-4 |
+| `dashboard_refresh_seconds` | integer | Yes | Config | Internal | 30. | FR-4.3 |
+| `fair_share_buffer_default` | decimal | Yes | Config | Internal | 1.0. Used when a new group is created. | FR-6.3 |
+
+---
+
+# Part C: Status lifecycles
+
+### C1. Item status
+```
+            delete                 permanent delete (owner, or 90 days)
+  active ──────────► deleted ─────────────────────────────► (gone; claimer gets a tombstone if claimed)
+     ▲    ◄──────────    │
+     │     restore       │
+     │ archive           │ archive
+     ▼                   ▼
+  archived (prior_status=active)    archived (prior_status=deleted, countdown frozen)
+     │ restore archive → returns to its prior_status
+     └─ re-add → a NEW active item (no claim)
+```
+
+### C2. Member status
+`pending` (added by the admin) → `joined` (PIN set on first visit) → *deleted by the admin* (items deleted, claims released, tokens revoked).
+A member who joins with a code or invite link is created directly as `joined`.
+
+### C3. Claim status
+`active` ⇄ `frozen` (when the item is archived, and back again when the archive is restored)
+`active` → `released` (the claimer unclaims, or the claimer is deleted by the admin)
+`active` or `frozen` → *tombstone* (when the item is permanently deleted)
+`purchased` is a separate true-or-false flag that can be set on an `active` or `frozen` claim.
+
+### C4. Auto-fill status
+`not_applicable` (description only) · `pending` → `succeeded` / `partial` / `failed`
+
+### C5. Group request status
+`pending` → `approved` (the group is created and the requester becomes its first joined member) / `declined`
+
+---
+
+# Part D: What each viewer sees for an item
+
+The server builds each response from this table. Nothing outside a viewer's column is ever sent to them.
+
+| Item state | Owner sees | Claimer sees | Other members who can see the item | Members the item is hidden from |
+|---|---|---|---|---|
+| Active, unclaimed | Normal | — | Normal, with a **Claim** button | Nothing |
+| Active, claimed | Normal *(no claim info)* | On their Claimed list, with their private **Purchased** toggle | Greyed out, "Claimed by <name>" | Nothing |
+| Edited after a claim | Normal | **Updated** flag | Greyed out, "Claimed by <name>" | Nothing |
+| Deleted (soft) | Deleted section, greyed out, with **Restore** and **Permanently delete** | "Deleted by owner" | Greyed out, "Deleted by owner", can't be claimed | Nothing |
+| Permanently deleted | Gone | Tombstone: "No longer on <name>'s list" | Gone | Nothing |
+| Archived | Archived section, with **Re-add** | Archived section of their Claimed list | "Archived", can't be claimed | Nothing |
+
+---
+
+# Part E: Open points for review
+
+These are the values marked **(P)** in Part B. Confirm each one or change it.
+
+| # | Point | Proposed |
+|---|---|---|
+| G1 | Maximum length of a group name | 60 characters |
+| G2 | Group code format | 8 characters without look-alike characters (no O/0 or I/1), shown as `XXXX-XXXX` |
+| G3 | Is the fair-share buffer set per group, or once for the whole app? | Per group, defaulting to 1.0 |
+| G4 | Maximum length of a display name | 30 characters |
+| G5 | Does a PIN reset sign the member out on all their devices? | Yes |
+| G6 | Maximum length of an item title | 100 characters |
+| G7 | Should items have their own notes, separate from each link's notes? | Yes, up to 500 characters |
+| G8 | Maximum number of links on a Giver's choice item | 10 |
+| G9 | Currency when auto-fill doesn't find one | One currency per group, set when the group is created **(new group field)** |
+| G10 | Keep a history of released (unclaimed) claims? | Yes, kept internally and never shown |
+| G11 | Maximum length of a product description | 500 characters |
