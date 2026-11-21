@@ -15,7 +15,7 @@ export function App() {
   return (
     <>
       {route.name === "home" && <HomeGate key={path} forceHome={query(path).has("add")} />}
-      {route.name === "join" && <Join key={route.code} code={route.code} initialMode={route.mode} />}
+      {route.name === "join" && <Join key={route.code} code={route.code} />}
       {route.name === "new" && <NewGroup />}
       {route.name === "group" && <GroupPlaceholder key={route.groupId} groupId={route.groupId} />}
       <Toaster />

@@ -41,7 +41,8 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | **PIN lockout** | After 5 wrong PIN attempts, recovery for that member is locked for 15 minutes. | NFR-4 |
 | **PIN reset** | The admin clears a member's PIN. The member sets a new one on their next recovery. | FR-2.6 |
 | **Member token** | A random secret stored in the browser that identifies a member on later visits. Each browser or device has its own token, and one member can have several. | FR-1.5 |
-| **Recovery** | Restoring a member's identity in a new browser: enter the group code (or open the invite link), pick your display name, enter your PIN. A new member token is issued. | FR-1.7 |
+| **Recovery** | Restoring a member's identity in a new browser, on the Join screen: choose your own name in the dropdown and enter only your PIN. After a wrong PIN: "I don't have a PIN yet" / "I can't remember my PIN". A new member token is issued. | FR-1.7 |
+| **"Is that you?" check** | When a new person types a name already in the group, the Join screen asks whether it's them. Yes leads to that person's PIN; No asks for a distinguishing name (e.g. "Alex B"). | FR-1.11 |
 | **Admin area** | The separate part of the app where the admin works. | FR-2 |
 | **Admin credential** | The secret the admin uses to sign in to the admin area. It's separate from any member PIN. | NFR-7 |
 | **Surprise rule** | An item's owner never receives any claim information about their own items: whether they're claimed, who claimed them, whether they're purchased, or anything about fair share. The **server** enforces this. | FR-3.4, NFR-5 |

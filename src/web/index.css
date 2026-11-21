@@ -2,6 +2,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* "dark:" utilities follow the device setting, unless a host page sets data-theme explicitly. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) { @slot; }
+  }
+  &:where([data-theme="dark"], [data-theme="dark"] *) { @slot; }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -44,8 +52,8 @@
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
+    --border: oklch(1 0 0 / 14%);
+    --input: oklch(1 0 0 / 22%);
     --ring: oklch(0.556 0 0);
     --brand: oklch(0.769 0.188 70.08);
       color-scheme: dark;
@@ -68,8 +76,8 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 22%);
   --ring: oklch(0.556 0 0);
   --brand: oklch(0.769 0.188 70.08);
     color-scheme: dark;

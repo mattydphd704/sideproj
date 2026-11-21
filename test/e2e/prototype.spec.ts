@@ -38,31 +38,48 @@ test("[PROTO-02] SC-02 Type a group code", async () => {
 });
 test("[PROTO-03] SC-03 Join under a name the organiser added", async () => {
   await open("SC-03");
-  await expect(ph().locator("#added option")).toHaveText(["Choose your name", "Grandma", "Uncle Ray", "No, I'm new here"]);
+  await expect(ph().locator("#added option")).toHaveText(["Choose your name", "Alex", "Grandma", "Jo", "Sam", "Uncle Ray", "No, I'm new here"]);
   await ph().locator("#added").selectOption({ label: "Grandma" });
   await expect(ph().getByLabel("Your name")).toHaveCount(0);
   await pin("pin", "2468"); await pin("pin2", "2468"); await see("PINs match."); await join(); await see("Signed in as Grandma");
 });
-test("[PROTO-11] SC-11 Open an invite link when already in the group", async () => {
-  await open("SC-11"); await see("You're already in Smith Family."); await see("Signed in as Sam");
-});
-test("[PROTO-04] SC-04 Name already taken, so sign back in", async () => {
-  await open("SC-04"); await newPerson("Alex"); await join(); await see("Someone in this group already uses that name");
-  await ph().getByRole("button", { name: "Sign back in", exact: true }).click(); await see("Welcome back to Smith Family");
-  await ph().locator("#rname").selectOption("Alex"); await pin("rpin", "1234"); await ph().getByRole("button", { name: "Sign in" }).click();
-  await see("Welcome back, Alex!");
+test("[PROTO-04] SC-04 Same name as someone already in the group", async () => {
+  await open("SC-04"); await see("Join Smith Family");
+  await ph().locator("#added").selectOption("Alex");
+  await pin("spin", "9876"); await ph().getByRole("button", { name: "Sign in" }).click();
+  await see("That PIN didn't match");
+  await ph().getByRole("button", { name: "I don't have a PIN yet" }).click();
+  await see("Then you're probably a different Alex");
+  await ph().getByRole("button", { name: "Use a different name" }).click();
+  await expect(ph().locator("#added")).toHaveValue("__new__");
+  await ph().getByLabel("Your name").fill("Alex B");
+  await pin("pin", "4321"); await pin("pin2", "4321"); await join();
+  await see("Signed in as Alex B");
 });
 test("[PROTO-05] SC-05 Sign back in on a new device, using the hint", async () => {
-  await open("SC-05"); await ph().getByRole("button", { name: "Been here before? Sign back in" }).click();
-  await ph().locator("#rname").selectOption("Jo"); await ph().getByRole("button", { name: "Show my hint" }).click(); await see("Your hint: the garden gate");
-  await pin("rpin", "2580"); await ph().getByRole("button", { name: "Sign in" }).click(); await see("Welcome back, Jo!");
+  await open("SC-05"); await see("Join Smith Family");
+  await ph().locator("#added").selectOption("Jo");
+  await expect(ph().locator("input#pin")).toHaveCount(0);
+  await ph().getByRole("button", { name: "Show my hint" }).click(); await see("Your hint: the garden gate");
+  await pin("spin", "2580"); await ph().getByRole("button", { name: "Sign in" }).click(); await see("Welcome back, Jo!");
 });
-test("[PROTO-06] SC-06 Too many wrong PINs", async () => {
-  await open("SC-06"); await ph().getByRole("button", { name: "Been here before? Sign back in" }).click();
-  await ph().locator("#rname").selectOption("Sam");
-  for (let i = 0; i < 4; i++) { await pin("rpin", "0000"); await ph().getByRole("button", { name: "Sign in" }).click(); await see("That name and PIN didn't match"); }
-  await pin("rpin", "0000"); await ph().getByRole("button", { name: "Sign in" }).click();
+test("[PROTO-06] SC-06 Wrong PIN, then too many wrong PINs", async () => {
+  await open("SC-06"); await ph().locator("#added").selectOption("Sam");
+  await pin("spin", "0000"); await ph().getByRole("button", { name: "Sign in" }).click(); await see("That PIN didn't match");
+  await ph().getByRole("button", { name: "I can't remember my PIN" }).click();
+  await see("Your hint: the old house number"); await see("Ask the group organiser to reset it");
+  for (let i = 0; i < 4; i++) { await pin("spin", "0000"); await ph().getByRole("button", { name: "Sign in" }).click(); await page.waitForTimeout(350); }
   await see("Too many wrong PINs"); await expect(ph().getByRole("button", { name: "Sign in" })).toBeDisabled();
+});
+
+test("[PROTO-15] SC-13 Types their name instead of choosing it", async () => {
+  await open("SC-13");
+  await ph().locator("#added").selectOption("__new__");
+  await ph().getByLabel("Your name").fill("Alex"); await ph().getByLabel("Your name").blur();
+  await see("There's already someone called Alex in Smith Family. Is that you?");
+  await ph().getByRole("button", { name: "Yes, that's me" }).click();
+  await expect(ph().locator("#added")).toHaveValue("Alex");
+  await pin("spin", "1234"); await ph().getByRole("button", { name: "Sign in" }).click(); await see("Welcome back, Alex!");
 });
 test("[PROTO-09] SC-09 Start a new group (approved)", async () => {
   await open("SC-09"); await ph().getByRole("button", { name: "Start a new group" }).click();
@@ -122,10 +139,10 @@ test("[PROTO-14] A global change on the Join screen appears in every scenario th
   await open("SC-01");
   await page.getByRole("button", { name: "Global change" }).click();
   await expect(page.locator("#flag-scope-screen")).toBeChecked();
-  await expect(page.locator(".proto-card-active")).toContainText("SC-01, SC-02, SC-03, SC-11, SC-04, SC-05, SC-06, SC-07, SC-08");
+  await expect(page.locator(".proto-card-active")).toContainText("SC-01, SC-02, SC-03, SC-05, SC-06, SC-13, SC-04, SC-07, SC-08");
   await page.locator("#flag-note").fill("All error text should be bold");
   await page.getByRole("button", { name: "Save global change" }).click();
-  for (const id of ["SC-03", "SC-07", "SC-05"]) {
+  for (const id of ["SC-03", "SC-07", "SC-05", "SC-13"]) {
     await open(id);
     await expect(page.locator(".proto-side")).toContainText("All error text should be bold");
   }

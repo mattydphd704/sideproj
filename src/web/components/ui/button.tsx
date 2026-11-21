@@ -11,7 +11,8 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
         destructive: "bg-destructive text-white shadow-xs hover:bg-destructive/90",
-        outline: "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+        // Dark mode: visible surface and border so outline buttons read as buttons (global flag, review round 3).
+        outline: "border bg-background text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 underline hover:text-primary/80",

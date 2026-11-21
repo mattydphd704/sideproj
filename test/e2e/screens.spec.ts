@@ -49,8 +49,8 @@ test("Section 1 screens", async ({ page, browser }) => {
   await page.getByLabel("Your name").fill("Sam");
   await typePin(page, "pin", "1234"); await typePin(page, "pin2", "1234");
   await page.getByRole("button", { name: "Join Smith Family" }).click();
-  await expect(page.getByText("Someone in this group already uses that name.", { exact: false })).toBeVisible();
-  await shot(page, "05-join-name-taken");
+  await expect(page.getByText("There's already someone called Sam in Smith Family. Is that you?")).toBeVisible();
+  await shot(page, "05-join-name-already-in-group");
   await page.getByLabel("Your name").fill("Robin");
   await typePin(page, "pin", "1234"); await typePin(page, "pin2", "9999");
   await expect(page.getByText("The two PINs don't match.", { exact: false })).toBeVisible();
@@ -59,22 +59,29 @@ test("Section 1 screens", async ({ page, browser }) => {
   await expect(page.getByText("This invite didn't work")).toBeVisible();
   await shot(page, "07-invite-didnt-work");
 
-  // §1.3 Sign back in
-  await page.goto(`/j/${g.display}/back`);
-  await expect(page.getByRole("heading", { name: "Welcome back to Smith Family" })).toBeVisible();
-  await shot(page, "08-sign-back-in");
-  await page.locator("#rname").selectOption("Alex");
-  await shot(page, "09-sign-back-in-name-chosen");
+  // §1.3 Signing in (on the Join screen since round 3)
+  await page.goto(`/j/${g.display}`);
+  await page.locator("#added").selectOption("Alex");
+  await shot(page, "08-sign-in-name-chosen");
   await page.getByRole("button", { name: "Show my hint" }).click();
   await expect(page.getByText("Your hint: the garden gate")).toBeVisible();
-  await shot(page, "09b-sign-back-in-hint-shown");
-  await typePin(page, "rpin", "0000");
+  await shot(page, "09-sign-in-hint-shown");
+  await typePin(page, "spin", "0000");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("That name and PIN didn't match.", { exact: false })).toBeVisible();
-  await shot(page, "10-sign-back-in-wrong-pin");
-  for (let i = 0; i < 4; i++) { await typePin(page, "rpin", "0000"); await page.getByRole("button", { name: "Sign in" }).click(); await page.waitForTimeout(300); }
+  await expect(page.getByText("That PIN didn't match.", { exact: false })).toBeVisible();
+  await shot(page, "10-sign-in-wrong-pin-help");
+  await page.getByRole("button", { name: "I don't have a PIN yet" }).click();
+  await shot(page, "10b-sign-in-no-pin-yet");
+  for (let i = 0; i < 4; i++) { await typePin(page, "spin", "0000"); await page.getByRole("button", { name: "Sign in" }).click(); await page.waitForTimeout(300); }
   await expect(page.getByText("Too many wrong PINs")).toBeVisible();
-  await shot(page, "11-sign-back-in-locked");
+  await shot(page, "11-sign-in-locked");
+  await seed.clearRateLimits();
+  await page.goto(`/j/${g.display}`);
+  await page.locator("#added").selectOption("__new__");
+  await page.getByLabel("Your name").fill("Jo");
+  await page.getByLabel("Your name").blur();
+  await expect(page.getByText("Is that you?", { exact: false })).toBeVisible();
+  await shot(page, "05b-join-is-that-you");
 
   // Inside the group (temporary placeholder) with the welcome toast.
   // (The steps above use up the 30-per-hour attempts on this one code, so reset the counters.)

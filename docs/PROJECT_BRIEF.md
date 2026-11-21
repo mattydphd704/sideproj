@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.1, approved by TPM (round 1 UI review changes included) |
+| **Status** | v1.2, approved by TPM (UI review rounds 1–3 included) |
 | **Last updated** | 2026-11-21 |
 | **Phase** | Outline (no architecture or code yet) |
 
@@ -18,6 +18,7 @@
 | v0.7 | Added fair-share alerts (FR-6). Replaced "expire lists" with soft delete, permanent delete and archive (FR-7). Groups and PINs persist. Auto-archive after 12 months. Q27 resolved. New questions Q28 to Q31. |
 | v0.8 | FR-6 marked as initial logic to be tuned in test (PR-003). The admin can restore archived lists using archive metadata. Q27 to Q30 resolved. Auto-archive (Q31) moved to the backlog (B-011). Created `BUGS.md`. |
 | v0.9 | Glossary field decisions G1 to G11 applied. Giver's choice items have up to 5 links. Each group has a currency. |
+| v1.2 | TPM UI review round 3: the Join screen's dropdown lists everyone in the group. Returning people choose their name and enter only their PIN, with "I don't have a PIN yet" / "I can't remember my PIN" help after a wrong PIN. New people who type a name already in use are asked "Is that you?" (FR-1.7, FR-2.2, FR-1.11). |
 | v1.1 | TPM UI review round 1: PINs are exactly 4 numbers, shown while typing, with an optional hint (FR-1.4, FR-1.7, NFR-4, G29). The pre-added names dropdown shows only people who haven't signed in yet (FR-2.2). Open security trade-off G30. |
 | v1.0 | NFR-9 is now advisory (architecture AD-06; the exact version is backlog B-012). Invite links use the `/j/<code>` short path (FR-1.10). |
 
@@ -52,7 +53,8 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - FR-1.4: On joining, the member enters a **display name** and creates a **PIN of exactly 4 numbers**, typed twice. The numbers are visible while typing. They can add an optional **PIN hint**: up to 40 characters, and it must not contain the PIN (G29).
 - FR-1.5: The browser (cookie or local storage) remembers the member, so they don't need to enter their PIN on normal visits.
 - FR-1.6: The PIN screen tells the user something like: *"You won't need this PIN every time. You'll only need it if you open your list on another device or after clearing your browser's cookies or cache."*
-- FR-1.7: **Recovery:** On a new device, a member enters the group code, picks their name and enters their PIN to restore their identity. After picking their name, they can choose to see their PIN hint, if they set one.
+- FR-1.7: **Recovery:** On a new device, a member opens the invite link (or enters the group code), **chooses their own name in the Join screen's dropdown** and enters only their PIN. They can choose to see their PIN hint. After a wrong PIN they're offered "I don't have a PIN yet", which explains they're probably a different person with the same name and suggests a distinguishing name, and "I can't remember my PIN", which shows the hint and says to ask the organiser.
+- FR-1.11: **Duplicate names:** a new person who types a name already used in the group is asked "Is that you?". Yes leads to entering that person's PIN. No asks for a name that tells them apart, for example "Alex B".
 - FR-1.8: Members can see the names of all other members of their group.
 - FR-1.10: **Invite link format.** Invite links always use the app's own short path: `https://<app-host>/j/<GROUPCODE>`, for example `…/j/K7QM-4XTR`.
   - Opening it goes straight to the join screen for that group, with the code already filled in.
@@ -63,7 +65,7 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 
 ### FR-2: Admin
 - FR-2.1: The admin can create groups. A group's name is set at creation.
-- FR-2.2: The admin can **manually add** members to a group by name. An added member shows as **pending** until someone opens the group with that name and sets its PIN. After that, the PIN is required to take over that name. On the Join screen, pending names are offered in a dropdown ("Have you already been added?") that lists **only people who haven't signed in for the first time yet**.
+- FR-2.2: The admin can **manually add** members to a group by name. An added member shows as **pending** until someone opens the group with that name and sets its PIN. After that, the PIN is required to take over that name. On the Join screen, the dropdown "Have you already been added?" lists **everyone in the group**: people who have signed in before, and pending people. Choosing a pending name leads to creating its PIN. *(Round 1 listed only pending people; round 3 changed this, G33.)*
 - FR-2.3: The admin can **delete** members from a group. The member's items are deleted, and any claims they made are released, so those items become available again.
 - FR-2.4: The admin can approve or decline "Create new group" requests from a queue.
 - FR-2.5: The admin can also be an ordinary member of a group, with their own list and claims.

@@ -262,13 +262,16 @@ Runs on a phone (Pixel 7) and, for tests tagged `@desktop`, also desktop Chrome,
 | UI-03 | `/j/<code>` opens Join; an already-joined browser goes straight in | T-01, FR-1.10 | ✅ |
 | UI-04 | Join as a new person → inside the group with the welcome message, in under 2 minutes (phone + desktop) | T-03, SC-2 | ✅ |
 | UI-05 | Choose a pre-added name in the "Have you already been added?" dropdown → joins as that person; the name box hides | T-04, FR-2.2 | ✅ |
-| UI-15 | The dropdown lists only people who haven't signed in yet; once someone joins under a name it disappears; when nobody is waiting it still shows, with "No, I'm new here" already chosen | FR-2.2, G32 | ✅ |
+| UI-15 | The dropdown lists everyone in the group; joined names lead to Enter your PIN, added names to Create a PIN; an empty group pre-chooses "No, I'm new here" (round 3) | FR-2.2, G32, G33 | ✅ |
 | UI-16 | PIN boxes show the numbers as typed; exactly 4 boxes | FR-1.4 | ✅ |
-| UI-17 | Hint: can't contain the PIN; "Show my hint" shows it on Sign back in; "You didn't set a hint" otherwise | G29 | ✅ |
+| UI-17 | Hint can't contain the PIN; "Show my hint" after choosing your name; "You didn't set a hint" otherwise | G29 | ✅ |
 | UI-18 | Home has no heading, intro or card title (review round 1) | R1-1 | ✅ |
 | UI-19 | PIN match checked the moment the 4th number is typed, on Join and Start a group; "PINs match." shown | GR-3, R2-1 | ✅ |
 | UI-20 | Join is answered in order: dropdown first (error if skipped), then name for new people only, then the PIN block | GR-2, GR-7 | ✅ |
-| UI-21 | Every dropdown uses the phone's own picker | GR-4, R2-3 | ✅ |
+| UI-22 | "I don't have a PIN yet" explains, switches to a new name, refuses the same name again, and joins as "Alex B" (round 3) | FR-1.7, FR-1.11 | ✅ |
+| UI-23 | "I can't remember my PIN" shows the hint and says to ask the organiser (round 3) | FR-1.7 | ✅ |
+| UI-24 | Dark mode: outline buttons have a visible surface and border (global flag, round 3) | R3-1 | ✅ |
+| UI-21 | Every dropdown uses the phone's own picker; the old sign-in address opens the same Join screen | GR-4 | ✅ |
 
 ### 2.12b Prototype scenario walkthroughs (PROTO): ✅ `test/e2e/prototype.spec.ts`
 Each test builds the clickable prototype and walks one scenario **exactly as its card's steps describe**, so a card and its screens can't drift apart (TPM review round 2). Part of `npm run verify` as ENV-11.
@@ -276,13 +279,13 @@ Each test builds the clickable prototype and walks one scenario **exactly as its
 | ID | Scenario | Status |
 |---|---|---|
 | PROTO-00 | All 12 cards show how the person arrives and what the browser knows, and open a start screen | ✅ |
-| PROTO-01 to PROTO-12 | SC-01 to SC-12, one test each | ✅ |
+| PROTO-01 to PROTO-10, PROTO-12, PROTO-15 | SC-01 to SC-10, SC-12 and SC-13, one test each (SC-11 moved to the backlog in round 3) | ✅ |
 | PROTO-13 | "Works as expected" shows a green check and counts toward "N of 12 working"; "Needs changes" removes it | ✅ |
 | PROTO-14 | A global change on one screen appears in every scenario that shows that screen and no others; a scenario-only flag stays put | ✅ |
-| UI-06 | Name taken → error with a working "Sign back in" link | T-03, T-05 | ✅ |
+| UI-06 | A new person typing a name already in the group is asked "Is that you?"; "Yes, that's me" leads to Enter your PIN (round 3) | FR-1.11 | ✅ |
 | UI-07 | PINs that don't match are caught before sending (confirmed by a deliberate break) | G24 | ✅ |
-| UI-08 | Sign back in on a second browser | T-05, SC-3 | ✅ |
-| UI-09 | Wrong-PIN message; the 5th wrong PIN shows the locked alert and disables Sign in | T-05, S-02 | ✅ |
+| UI-08 | Sign back in on a second browser by choosing your own name in the dropdown (round 3) | T-05, SC-3 | ✅ |
+| UI-09 | Wrong PIN shows the message and the two help buttons; the 5th wrong PIN locks the name and disables Sign in | T-05, S-02 | ✅ |
 | UI-10 | Request a group → waiting (also after coming back) → approved → moved in | T-06, T-07 | ✅ |
 | UI-11 | Declined → message → "Send a new request" | T-08 | ✅ |
 | UI-12 | 360 px wide: no sideways scrolling on any Section 1 screen (found BUG-003) | NFR-1 | ✅ |
@@ -385,12 +388,12 @@ Every requirement must map to at least one test before v1 ships.
 | Schema (SMK/SCH/CLM-01–05) | 23 | 23 | 0 | 0 |
 | ID (identity) + CFG | 28 | 28 | 0 | 0 |
 | REQ (group requests) | 8 | 8 | 0 | 0 |
-| UI, Section 1 | 21 | 21 | 0 | 0 |
+| UI, Section 1 | 24 | 24 | 0 | 0 |
 | PROTO (prototype walkthroughs) | 15 | 15 | 0 | 0 |
 | ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 58 | 0 | 58 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **186** | **106** | **72** | **8** |
+| **Total automated** | **189** | **109** | **72** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

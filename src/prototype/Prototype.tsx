@@ -31,7 +31,6 @@ const KIND_LABEL: Record<FlagKind, string> = { change: "Change", question: "Ques
 /** Which screen of the flow the phone is showing (for tying flags to screens). */
 function currentScreenKey(): ScreenKey {
   const r = parse(currentPath());
-  if (r.name === "join") return r.mode === "recover" ? "recover" : "join";
   return r.name;
 }
 

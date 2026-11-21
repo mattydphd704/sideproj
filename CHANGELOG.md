@@ -10,6 +10,14 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Changed: TPM review round 3, all open flags resolved (2026-11-21)
+- **Global flag, dark mode:** outline buttons (e.g. "Start a new group") get a visible surface and border, and borders are stronger in dark mode. A `dark:` variant follows both the device setting and an explicit `data-theme`. App-wide.
+- **One way in:** the Join screen's dropdown lists everyone in the group (reverses R1-4, G33). Returning people choose their name and enter only their PIN. After a wrong PIN: "I don't have a PIN yet" (explains, suggests e.g. "Alex B", "Use a different name") and "I can't remember my PIN" (hint + ask the organiser). A new person typing a taken name is asked "Is that you?". The separate Sign back in screen is removed (`/j/<code>/back` opens Join). Brief v1.2 (FR-1.7, FR-2.2, new FR-1.11). Server unchanged.
+- Global rules GR-1 and GR-2 rewritten, plus §1.2/§1.3 and the wording tables. Six C-REC IDs and three C-JOIN/C-ERR IDs retired; C-JOIN-32–35 and C-REC-16–19 added.
+- Prototype: SC-11 moved to the backlog (B-015); SC-04 and SC-06 rewritten; SC-13 added. The placeholder screen is to be replaced by each person's home screen (B-016).
+- BUG-006 fixed: "There's already a Alex" grammar, found by the walkthrough test.
+- Tests: UI-06, 08, 09, 15, 17 and 21 rewritten; UI-22 to UI-24 and PROTO-15 added.
+
 ### Added: prototype progress and global changes (2026-11-21)
 - "Works as expected" puts a green check on the scenario, and the top bar shows "N of 12 working".
 - "Global change" button: a change that applies to every scenario showing the same screen, or to every screen. It appears in every affected scenario and is resolved once for all of them. Scenarios passed before a global fix show "Re-check".
