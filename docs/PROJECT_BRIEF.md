@@ -200,7 +200,7 @@ The goal is to stop one member from claiming most of a person's list and leaving
 
 | # | Question | Engineer's assumption, pending TPM confirmation |
 |---|---|---|
-| Q17 | Stack, hosting, budget, domain, timeline? | The engineer proposes options in `ARCHITECTURE.md`, sized for small scale (Q16). |
+| Q17 | Stack, hosting, budget, domain, timeline? | **Hosting: Cloudflare, Free or $5/mo (TPM).** Stack and plan analysis are in `ARCHITECTURE.md` v0.1, with open items A1 to A5. The timeline is still open. |
 
 ## 9. Success criteria for v1
 
