@@ -9,9 +9,17 @@ export type Workflow = "Joining a group" | "Signing back in" | "Starting a new g
 /** The setup and sign-in workflows in scope for Section 1, in the order shown. */
 export const WORKFLOWS: Workflow[] = ["Joining a group", "Signing back in", "Starting a new group", "Mistakes and limits"];
 
+/** The screens of the Getting-in flow (GR-1). Global changes are tied to one of these, or to all. */
+export type ScreenKey = "home" | "join" | "recover" | "new" | "group";
+export const SCREEN_LABEL: Record<ScreenKey | "all", string> = {
+  home: "Home", join: "Join", recover: "Sign back in", new: "Start a group / Waiting", group: "Inside the group", all: "Every screen",
+};
+
 export type Scenario = {
   id: string;
   workflow: Workflow;
+  /** Screens this scenario passes through, so global changes show up wherever they apply. */
+  screens: ScreenKey[];
   title: string;
   tasks: string[];
   who: string;
@@ -58,6 +66,7 @@ const NEW_PERSON_STEPS = (name: string) => [
 export const SCENARIOS: Scenario[] = [
   {
     id: "SC-01", workflow: "Joining a group", title: "Join from an invite link", tasks: ["T-01", "T-03"],
+    screens: ["join", "group"],
     who: "Morgan, a cousin who has never used the app",
     arrives: "Taps the invite link Sam texted them",
     browser: "New: has never used the app",
@@ -68,6 +77,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-02", workflow: "Joining a group", title: "Type a group code", tasks: ["T-02", "T-03"],
+    screens: ["home", "join", "group"],
     who: "Pat, who was told the code out loud",
     arrives: "Opens the app's home page and types the code",
     browser: "New: has never used the app",
@@ -84,6 +94,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-03", workflow: "Joining a group", title: "Join under a name the organiser added", tasks: ["T-04"],
+    screens: ["join", "group"],
     who: "Grandma, whom the organiser added before she ever opened the app",
     arrives: "Taps the invite link her grandson sent",
     browser: "New: has never used the app",
@@ -100,6 +111,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-11", workflow: "Joining a group", title: "Open an invite link when already in the group", tasks: ["T-01"],
+    screens: ["join", "group"],
     who: "Sam, already signed in on this phone",
     arrives: "Taps the group's invite link again, perhaps from an old message",
     browser: "Already signed in as Sam",
@@ -114,6 +126,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-04", workflow: "Signing back in", title: "Name already taken, so sign back in", tasks: ["T-03", "T-05"],
+    screens: ["join", "recover", "group"],
     who: "Alex, who joined last year, now on a new phone",
     arrives: "Taps the invite link and tries to join again as \"Alex\"",
     browser: "New phone: the app doesn't know Alex here",
@@ -129,6 +142,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-05", workflow: "Signing back in", title: "Sign back in on a new device, using the hint", tasks: ["T-05", "S-04"],
+    screens: ["join", "recover", "group"],
     who: "Jo, who cleared their browser and can't quite remember their PIN",
     arrives: "Taps the invite link, then \"Been here before? Sign back in\"",
     browser: "Cleared: the app no longer recognises Jo",
@@ -144,6 +158,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-06", workflow: "Signing back in", title: "Too many wrong PINs", tasks: ["T-05", "S-02"],
+    screens: ["join", "recover"],
     who: "Someone trying to guess Sam's PIN (or Sam, having a bad day)",
     arrives: "Taps the invite link, then \"Been here before? Sign back in\"",
     browser: "New: the app doesn't know them",
@@ -158,6 +173,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-09", workflow: "Starting a new group", title: "Start a new group (approved)", tasks: ["T-06", "T-07"],
+    screens: ["home", "new", "group"],
     who: "Rosa, who wants a group for her side of the family",
     arrives: "Opens the app's home page and taps \"Start a new group\"",
     browser: "New: has never used the app",
@@ -174,6 +190,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-10", workflow: "Starting a new group", title: "Start a new group (declined)", tasks: ["T-06", "T-08"],
+    screens: ["home", "new"],
     who: "Max, whose request the organiser turns down",
     arrives: "Opens the app's home page and taps \"Start a new group\"",
     browser: "New: has never used the app",
@@ -189,6 +206,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-07", workflow: "Mistakes and limits", title: "PIN typo while joining", tasks: ["T-03"],
+    screens: ["join"],
     who: "Robin, typing quickly",
     arrives: "Taps the invite link",
     browser: "New: has never used the app",
@@ -203,6 +221,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-08", workflow: "Mistakes and limits", title: "Broken invite link", tasks: ["T-01"],
+    screens: ["join", "home"],
     who: "Lee, whose link got cut off when it was copied",
     arrives: "Taps a link with a wrong code",
     browser: "New: has never used the app",
@@ -217,6 +236,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "SC-12", workflow: "Mistakes and limits", title: "Too many attempts from one network", tasks: ["S-03"],
+    screens: ["home"],
     who: "Someone trying lots of codes from one network",
     arrives: "Opens the app's home page",
     browser: "This network already made 10 failed attempts in the last 15 minutes",

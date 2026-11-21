@@ -277,6 +277,8 @@ Each test builds the clickable prototype and walks one scenario **exactly as its
 |---|---|---|
 | PROTO-00 | All 12 cards show how the person arrives and what the browser knows, and open a start screen | ✅ |
 | PROTO-01 to PROTO-12 | SC-01 to SC-12, one test each | ✅ |
+| PROTO-13 | "Works as expected" shows a green check and counts toward "N of 12 working"; "Needs changes" removes it | ✅ |
+| PROTO-14 | A global change on one screen appears in every scenario that shows that screen and no others; a scenario-only flag stays put | ✅ |
 | UI-06 | Name taken → error with a working "Sign back in" link | T-03, T-05 | ✅ |
 | UI-07 | PINs that don't match are caught before sending (confirmed by a deliberate break) | G24 | ✅ |
 | UI-08 | Sign back in on a second browser | T-05, SC-3 | ✅ |
@@ -384,11 +386,11 @@ Every requirement must map to at least one test before v1 ships.
 | ID (identity) + CFG | 28 | 28 | 0 | 0 |
 | REQ (group requests) | 8 | 8 | 0 | 0 |
 | UI, Section 1 | 21 | 21 | 0 | 0 |
-| PROTO (prototype walkthroughs) | 13 | 13 | 0 | 0 |
+| PROTO (prototype walkthroughs) | 15 | 15 | 0 | 0 |
 | ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 58 | 0 | 58 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **184** | **104** | **72** | **8** |
+| **Total automated** | **186** | **106** | **72** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

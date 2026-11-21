@@ -2,15 +2,15 @@
 // with in-line flagging for TPM review.
 import * as React from "react";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, Copy, Flag as FlagIcon, MousePointerClick, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, Copy, Flag as FlagIcon, Globe, MousePointerClick, RefreshCw, RotateCcw, Trash2, X } from "lucide-react";
 import { App } from "../web/App";
-import { startMemoryRouting, currentPath } from "../web/lib/router";
+import { startMemoryRouting, currentPath, parse } from "../web/lib/router";
 import { Button } from "../web/components/ui/button";
 import { Badge } from "../web/components/ui/badge";
 import { cn } from "../web/lib/utils";
-import { GROUP_CODE, ORDERED, SHARED_DATA, WORKFLOWS, prepare, type Scenario } from "./scenarios";
+import { GROUP_CODE, ORDERED, SCREEN_LABEL, SHARED_DATA, WORKFLOWS, prepare, type Scenario, type ScreenKey } from "./scenarios";
 import { organiser, getState } from "./mockServer";
-import { connectStore, identify, screenName, type Flag, type FlagKind, type Run, type Store } from "./flags";
+import { appliesTo, connectStore, identify, screenName, type Flag, type FlagKind, type Run, type Store } from "./flags";
 
 /** Prototype status messages go to the top bar, not the phone, so they aren't mistaken for the app. */
 const notify = (msg: string) => window.dispatchEvent(new CustomEvent("proto:notify", { detail: msg }));
@@ -28,11 +28,39 @@ function StatusLine() {
 
 const KIND_LABEL: Record<FlagKind, string> = { change: "Change", question: "Question", bug: "Doesn't work" };
 
+/** Which screen of the flow the phone is showing (for tying flags to screens). */
+function currentScreenKey(): ScreenKey {
+  const r = parse(currentPath());
+  if (r.name === "join") return r.mode === "recover" ? "recover" : "join";
+  return r.name;
+}
+
+type Selected = { copyId: string | null; element: string; screen: string; screenKey: ScreenKey; global?: boolean };
+
+/**
+ * A scenario's state for the list: passed (green check), needs a re-check because a global change
+ * landed on one of its screens after it was passed, or needs changes.
+ */
+type Status = "pass" | "recheck" | "fail" | "untested";
+function scenarioStatus(sc: Scenario, run: Run | undefined, flags: Flag[]): Status {
+  if (!run) return "untested";
+  if (run.result === "fail") return "fail";
+  const changedSince = flags.some((f) => f.scope === "global" && f.status === "done" && (f.resolvedAt ?? 0) > run.updatedAt && appliesTo(f, sc));
+  return changedSince ? "recheck" : "pass";
+}
+
+function StatusMark({ status }: { status: Status }) {
+  if (status === "pass") return <CheckCircle2 className="proto-check size-5" aria-label="Works as expected" />;
+  if (status === "recheck") return <span className="proto-pill proto-pill-recheck" title="A global change touched this scenario after it passed"><RefreshCw className="size-3" aria-hidden />Re-check</span>;
+  if (status === "fail") return <span className="proto-pill proto-pill-fail">Fix</span>;
+  return null;
+}
+
 export function Prototype() {
   const [scenario, setScenario] = React.useState<Scenario>(ORDERED[0]!);
   const [runKey, setRunKey] = React.useState(0);
   const [flagMode, setFlagMode] = React.useState(false);
-  const [selected, setSelected] = React.useState<{ copyId: string | null; element: string; screen: string } | null>(null);
+  const [selected, setSelected] = React.useState<Selected | null>(null);
   const [store, setStore] = React.useState<Store | null>(null);
   const [flags, setFlags] = React.useState<Flag[]>([]);
   const [runs, setRuns] = React.useState<Record<string, Run>>({});
@@ -72,7 +100,7 @@ export function Prototype() {
       root.querySelectorAll(".proto-picked").forEach((n) => n.classList.remove("proto-picked"));
       const t = e.target as Element;
       t.classList.add("proto-picked");
-      setSelected({ ...identify(t, root), screen: screenName(root) });
+      setSelected({ ...identify(t, root), screen: screenName(root), screenKey: currentScreenKey() });
     };
     const block = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
     root.addEventListener("mouseover", over, true);
@@ -93,9 +121,11 @@ export function Prototype() {
   }, [flagMode]);
 
   const index = ORDERED.findIndex((s) => s.id === scenario.id);
-  const flagsHere = flags.filter((f) => f.scenarioId === scenario.id);
-  const listed = showAll ? flags : flagsHere;
+  const globalHere = flags.filter((f) => f.scope === "global" && appliesTo(f, scenario));
+  const ownHere = flags.filter((f) => f.scope !== "global" && f.scenarioId === scenario.id);
   const open = flags.filter((f) => f.status === "open").length;
+  const openGlobal = flags.filter((f) => f.scope === "global" && f.status === "open").length;
+  const working = ORDERED.filter((s) => scenarioStatus(s, runs[s.id], flags) === "pass").length;
 
   return (
     <div className="proto-page">
@@ -106,7 +136,8 @@ export function Prototype() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusLine />
-          <Badge variant="outline">{open} open flag{open === 1 ? "" : "s"}</Badge>
+          <Badge variant="outline" className="proto-progress"><CheckCircle2 className="proto-check size-3.5" aria-hidden />{working} of {ORDERED.length} working</Badge>
+          <Badge variant="outline">{open} open flag{open === 1 ? "" : "s"}{openGlobal ? ` · ${openGlobal} global` : ""}</Badge>
           <Badge variant="secondary" title={store?.mode === "shared" ? "Flags are saved where Claude can read them" : "Flags are saved in this browser only"}>
             {store ? (store.mode === "shared" ? "Flags shared with Claude" : "Flags saved in this browser only") : "Connecting…"}
           </Badge>
@@ -122,16 +153,16 @@ export function Prototype() {
               <h2 className="proto-group-title">{w}</h2>
               <ul className="proto-group-items">
                 {ORDERED.filter((s) => s.workflow === w).map((s) => {
-                  const r = runs[s.id]; const n = flags.filter((f) => f.scenarioId === s.id && f.status === "open").length;
+                  const st = scenarioStatus(s, runs[s.id], flags); const n = flags.filter((f) => f.status === "open" && appliesTo(f, s)).length;
                   return (
                     <li key={s.id}>
                       <button type="button" onClick={() => start(s)} aria-current={s.id === scenario.id ? "true" : undefined}
-                        className={cn("proto-list-btn", s.id === scenario.id && "is-current")}>
+                        className={cn("proto-list-btn", s.id === scenario.id && "is-current", st === "pass" && "is-pass")}>
                         <span className="text-muted-foreground font-mono text-xs">{s.id}</span>
                         <span className="min-w-0 flex-1 text-left text-sm leading-snug">{s.title}</span>
                         <span className="flex shrink-0 items-center gap-1">
                           {n > 0 && <span className="proto-pill proto-pill-flag" title={`${n} open flag(s)`}>{n}</span>}
-                          {r && <span className={cn("proto-pill", r.result === "pass" ? "proto-pill-pass" : "proto-pill-fail")}>{r.result === "pass" ? "OK" : "Fix"}</span>}
+                          <StatusMark status={st} />
                         </span>
                       </button>
                     </li>
@@ -154,6 +185,9 @@ export function Prototype() {
               <Button size="sm" variant={flagMode ? "default" : "outline"} onClick={() => setFlagMode((f) => !f)} aria-pressed={flagMode}>
                 <MousePointerClick />{flagMode ? "Flagging: tap an element" : "Flag something"}
               </Button>
+              <Button size="sm" variant="outline" onClick={() => screenRef.current && setSelected({ copyId: null, element: "(whole screen)", screen: screenName(screenRef.current), screenKey: currentScreenKey(), global: true })}>
+                <Globe />Global change
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => start(scenario)}><RotateCcw />Restart</Button>
             </div>
           </div>
@@ -170,17 +204,24 @@ export function Prototype() {
           <ScenarioCard sc={scenario} />
           {scenario.organiser && <OrganiserPanel runKey={runKey} />}
           <FlagForm key={`${scenario.id}-${selected?.element}`} selected={selected} scenario={scenario} store={store}
-            flagMode={flagMode} onScreenFlag={() => screenRef.current && setSelected({ copyId: null, element: "(whole screen)", screen: screenName(screenRef.current) })}
+            flagMode={flagMode} onScreenFlag={() => screenRef.current && setSelected({ copyId: null, element: "(whole screen)", screen: screenName(screenRef.current), screenKey: currentScreenKey() })}
             onDone={() => { setSelected(null); setFlagMode(false); }} />
-          <ResultCard sc={scenario} run={runs[scenario.id]} store={store} />
+          <ResultCard sc={scenario} run={runs[scenario.id]} store={store} status={scenarioStatus(scenario, runs[scenario.id], flags)} />
           <section className="proto-card">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="proto-h2">Flags {showAll ? "(all scenarios)" : `(${scenario.id})`}</h2>
-              <Button size="sm" variant="ghost" onClick={() => setShowAll((v) => !v)}>{showAll ? "This scenario" : "Show all"}</Button>
+              <h2 className="proto-h2 flex items-center gap-2"><Globe className="size-4" />Global changes {showAll ? "(all)" : "affecting this scenario"}</h2>
+              <Button size="sm" variant="ghost" onClick={() => setShowAll((v) => !v)}>{showAll ? "This scenario" : "Show all flags"}</Button>
             </div>
-            {listed.length === 0
+            <p className="text-muted-foreground text-sm">A global change applies to every scenario that shows the same screen. It's fixed once, everywhere, and shows as resolved in every scenario at the same time.</p>
+            {(showAll ? flags.filter((f) => f.scope === "global") : globalHere).length === 0
+              ? <p className="text-muted-foreground text-sm">None yet.</p>
+              : <ul className="flex flex-col gap-2">{(showAll ? flags.filter((f) => f.scope === "global") : globalHere).map((f) => <FlagRow key={f.id} f={f} store={store} showScenario />)}</ul>}
+          </section>
+          <section className="proto-card">
+            <h2 className="proto-h2 flex items-center gap-2"><FlagIcon className="size-4" />{showAll ? "All scenario flags" : `This scenario's flags (${scenario.id})`}</h2>
+            {(showAll ? flags.filter((f) => f.scope !== "global") : ownHere).length === 0
               ? <p className="text-muted-foreground text-sm">No flags yet. Tap "Flag something", then tap any part of the phone screen.</p>
-              : <ul className="flex flex-col gap-2">{listed.map((f) => <FlagRow key={f.id} f={f} store={store} showScenario={showAll} />)}</ul>}
+              : <ul className="flex flex-col gap-2">{(showAll ? flags.filter((f) => f.scope !== "global") : ownHere).map((f) => <FlagRow key={f.id} f={f} store={store} showScenario={showAll} />)}</ul>}
           </section>
         </aside>
       </div>
@@ -267,19 +308,21 @@ function OrganiserPanel({ runKey }: { runKey: number }) {
 }
 
 function FlagForm({ selected, scenario, store, flagMode, onScreenFlag, onDone }: {
-  selected: { copyId: string | null; element: string; screen: string } | null; scenario: Scenario; store: Store | null;
+  selected: Selected | null; scenario: Scenario; store: Store | null;
   flagMode: boolean; onScreenFlag: () => void; onDone: () => void;
 }) {
   const [note, setNote] = React.useState("");
   const [kind, setKind] = React.useState<FlagKind>("change");
   const [busy, setBusy] = React.useState(false);
+  // "scenario" | "screen" (global: every scenario with this screen) | "all" (global: every screen)
+  const [scope, setScope] = React.useState<"scenario" | "screen" | "all">(selected?.global ? "screen" : "scenario");
   if (!selected) {
     return (
       <section className={cn("proto-card", flagMode && "proto-card-active")}>
         <h2 className="proto-h2 flex items-center gap-2"><FlagIcon className="size-4" />Flag a change</h2>
         <p className="text-muted-foreground text-sm">
           {flagMode ? "Tap any text, button or field in the phone. It's highlighted, and its wording ID is filled in here."
-            : "Tap \"Flag something\" above the phone, then tap the part you want changed. Or flag the whole screen."}
+            : "Tap \"Flag something\" above the phone, then tap the part you want changed. Use \"Global change\" for anything that should change on every scenario that shows the same screen, or across the whole app."}
         </p>
         <div><Button size="sm" variant="outline" onClick={onScreenFlag}>Flag the whole screen</Button></div>
       </section>
@@ -289,17 +332,21 @@ function FlagForm({ selected, scenario, store, flagMode, onScreenFlag, onDone }:
     if (!store || !note.trim()) return;
     setBusy(true);
     try {
-      await store.addFlag({ scenarioId: scenario.id, screen: selected.screen, copyId: selected.copyId, element: selected.element, note: note.trim(), kind });
-      notify("Flag saved");
+      const global = scope !== "scenario";
+      await store.addFlag({
+        scenarioId: scenario.id, screen: scope === "all" ? SCREEN_LABEL.all : selected.screen, copyId: selected.copyId, element: selected.element,
+        note: note.trim(), kind, scope: global ? "global" : "scenario", screenKey: scope === "all" ? "all" : selected.screenKey,
+      });
+      notify(global ? "Global change saved" : "Flag saved");
       setNote(""); onDone();
     } catch { notify("Couldn't save the flag. Try again."); }
     finally { setBusy(false); }
   };
   return (
     <section className="proto-card proto-card-active">
-      <h2 className="proto-h2 flex items-center gap-2"><FlagIcon className="size-4" />New flag</h2>
+      <h2 className="proto-h2 flex items-center gap-2">{scope === "scenario" ? <FlagIcon className="size-4" /> : <Globe className="size-4" />}{scope === "scenario" ? "New flag" : "New global change"}</h2>
       <dl className="proto-dl">
-        <dt>Screen</dt><dd>{selected.screen}</dd>
+        <dt>Screen</dt><dd>{selected.screen} <span className="text-muted-foreground">({SCREEN_LABEL[selected.screenKey]})</span></dd>
         <dt>Element</dt><dd>"{selected.element}"{selected.copyId && <> · <span className="font-mono">{selected.copyId}</span></>}</dd>
       </dl>
       <fieldset className="flex flex-wrap gap-2">
@@ -308,18 +355,31 @@ function FlagForm({ selected, scenario, store, flagMode, onScreenFlag, onDone }:
           <Button key={k} size="sm" type="button" variant={kind === k ? "default" : "outline"} aria-pressed={kind === k} onClick={() => setKind(k)}>{KIND_LABEL[k]}</Button>
         ))}
       </fieldset>
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1 text-sm font-medium">Applies to</legend>
+        {([
+          ["scenario", `This scenario only (${scenario.id})`],
+          ["screen", `Global: every scenario that shows the ${SCREEN_LABEL[selected.screenKey]} screen (${ORDERED.filter((x) => x.screens.includes(selected.screenKey)).map((x) => x.id).join(", ")})`],
+          ["all", "Global: every screen and step in the app"],
+        ] as const).map(([v, label]) => (
+          <label key={v} className="flex items-start gap-2 text-sm">
+            <input type="radio" name="flag-scope" id={`flag-scope-${v}`} className="mt-1 accent-[var(--brand)]" checked={scope === v} onChange={() => setScope(v)} />
+            <span>{label}</span>
+          </label>
+        ))}
+      </fieldset>
       <label htmlFor="flag-note" className="text-sm font-medium">What should change?</label>
       <textarea id="flag-note" className="proto-textarea" rows={3} value={note} onChange={(e) => setNote(e.target.value)}
         placeholder={"e.g. Say \"Choose your name\" instead"} autoFocus />
       <div className="flex gap-2">
-        <Button size="sm" onClick={() => void save()} disabled={busy || !note.trim() || !store}>Save flag</Button>
+        <Button size="sm" onClick={() => void save()} disabled={busy || !note.trim() || !store}>{scope === "scenario" ? "Save flag" : "Save global change"}</Button>
         <Button size="sm" variant="ghost" onClick={onDone}>Cancel</Button>
       </div>
     </section>
   );
 }
 
-function ResultCard({ sc, run, store }: { sc: Scenario; run?: Run; store: Store | null }) {
+function ResultCard({ sc, run, store, status }: { sc: Scenario; run?: Run; store: Store | null; status: Status }) {
   const [note, setNote] = React.useState(run?.note ?? "");
   React.useEffect(() => setNote(run?.note ?? ""), [sc.id, run?.note]);
   const set = (result: "pass" | "fail") => store?.setRun({ scenarioId: sc.id, result, note: note.trim(), updatedAt: Date.now() })
@@ -327,7 +387,9 @@ function ResultCard({ sc, run, store }: { sc: Scenario; run?: Run; store: Store 
   return (
     <section className="proto-card">
       <h2 className="proto-h2">Did it match the expected outcome?</h2>
-      {run && <p className="text-sm">Current: <strong>{run.result === "pass" ? "Works as expected" : "Needs changes"}</strong></p>}
+      {status === "pass" && <p className="proto-passed"><CheckCircle2 className="proto-check size-5" aria-hidden />Works as expected</p>}
+      {status === "recheck" && <p className="proto-resolution"><strong>Please re-check:</strong> a global change was made to a screen in this scenario after you marked it as working.</p>}
+      {status === "fail" && <p className="text-sm">Current: <strong>Needs changes</strong></p>}
       {run?.resolution && <p className="proto-resolution"><strong>Engineer's response:</strong> {run.resolution}</p>}
       <label htmlFor={`run-note-${sc.id}`} className="sr-only">Optional note</label>
       <textarea id={`run-note-${sc.id}`} className="proto-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional note about this scenario" />
@@ -345,6 +407,7 @@ function FlagRow({ f, store, showScenario }: { f: Flag; store: Store | null; sho
     <li className={cn("proto-flag", f.status === "done" && "is-done")}>
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <span className={cn("proto-pill", f.kind === "bug" ? "proto-pill-fail" : f.kind === "question" ? "proto-pill-q" : "proto-pill-flag")}>{KIND_LABEL[f.kind]}</span>
+        {f.scope === "global" && <span className="proto-pill proto-pill-global"><Globe className="size-3" aria-hidden />Global · {SCREEN_LABEL[(f.screenKey ?? "all") as ScreenKey | "all"] ?? f.screenKey}</span>}
         {f.status === "done" && <span className="proto-pill proto-pill-pass">Done</span>}
         {showScenario && <span className="text-muted-foreground font-mono">{f.scenarioId}</span>}
         <span className="text-muted-foreground">{f.screen}</span>

@@ -105,3 +105,40 @@ test("[PROTO-00] every scenario card uses the shared group data and opens its st
     await expect(ph().locator("main")).toBeVisible();
   }
 });
+
+test("[PROTO-13] \"Works as expected\" puts a green check on the scenario and counts it", async () => {
+  await open("SC-08");
+  await page.getByRole("button", { name: "Works as expected" }).click();
+  const btn = page.locator(".proto-list-btn", { hasText: "SC-08" });
+  await expect(btn.getByLabel("Works as expected")).toBeVisible();
+  await expect(page.locator(".proto-progress")).toContainText("1 of 12 working");
+  await expect(page.locator(".proto-passed")).toContainText("Works as expected");
+  await page.getByRole("button", { name: "Needs changes" }).click();
+  await expect(btn.getByLabel("Works as expected")).toHaveCount(0);
+  await expect(btn).toContainText("Fix");
+});
+
+test("[PROTO-14] A global change on the Join screen appears in every scenario that shows Join, and only those", async () => {
+  await open("SC-01");
+  await page.getByRole("button", { name: "Global change" }).click();
+  await expect(page.locator("#flag-scope-screen")).toBeChecked();
+  await expect(page.locator(".proto-card-active")).toContainText("SC-01, SC-02, SC-03, SC-11, SC-04, SC-05, SC-06, SC-07, SC-08");
+  await page.locator("#flag-note").fill("All error text should be bold");
+  await page.getByRole("button", { name: "Save global change" }).click();
+  for (const id of ["SC-03", "SC-07", "SC-05"]) {
+    await open(id);
+    await expect(page.locator(".proto-side")).toContainText("All error text should be bold");
+  }
+  for (const id of ["SC-12", "SC-09"]) {
+    await open(id);
+    await expect(page.locator(".proto-side")).not.toContainText("All error text should be bold");
+  }
+  // A scenario-only flag stays in its own scenario.
+  await open("SC-02");
+  await page.getByRole("button", { name: "Flag something" }).click();
+  await ph().getByLabel("Group code").click();
+  await page.locator("#flag-note").fill("Only for SC-02");
+  await page.getByRole("button", { name: "Save flag" }).click();
+  await open("SC-01");
+  await expect(page.locator(".proto-side")).not.toContainText("Only for SC-02");
+});

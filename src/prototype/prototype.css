@@ -3,6 +3,9 @@
 
 :root { --proto-ground: oklch(0.975 0.004 60); --proto-bezel: oklch(0.22 0.01 60); --proto-flag: oklch(0.72 0.17 60); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --proto-ground: oklch(0.18 0.006 60); --proto-bezel: oklch(0.08 0 0); } }
+/* green check stays readable in dark mode */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .proto-passed { color: oklch(0.75 0.15 150); } }
+:root[data-theme="dark"] .proto-passed { color: oklch(0.75 0.15 150); }
 :root[data-theme="dark"] { --proto-ground: oklch(0.18 0.006 60); --proto-bezel: oklch(0.08 0 0); }
 
 body { background: var(--proto-ground); }
@@ -80,5 +83,11 @@ body { background: var(--proto-ground); }
 .proto-pill-flag { background: color-mix(in oklch, var(--proto-flag) 22%, transparent); color: var(--foreground); }
 .proto-pill-q { background: color-mix(in oklch, oklch(0.6 0.12 250) 22%, transparent); color: var(--foreground); }
 .proto-pill-pass { background: color-mix(in oklch, oklch(0.65 0.15 150) 25%, transparent); color: var(--foreground); }
+.proto-check { color: oklch(0.6 0.16 150); flex-shrink: 0; }
+.proto-list-btn.is-pass { border-color: color-mix(in srgb, oklch(0.6 0.16 150) 55%, var(--border)); }
+.proto-passed { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: oklch(0.5 0.14 150); }
+.proto-progress { gap: 4px; }
+.proto-pill-recheck { gap: 3px; background: color-mix(in oklch, oklch(0.75 0.15 80) 30%, transparent); color: var(--foreground); }
+.proto-pill-global { gap: 3px; background: color-mix(in oklch, oklch(0.6 0.12 250) 22%, transparent); color: var(--foreground); }
 .proto-pill-fail { background: color-mix(in oklch, var(--destructive) 22%, transparent); color: var(--foreground); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

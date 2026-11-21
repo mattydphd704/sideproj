@@ -7,7 +7,19 @@ export type FlagKind = "change" | "question" | "bug";
 export type Flag = {
   id: string; scenarioId: string; screen: string; copyId: string | null; element: string;
   note: string; kind: FlagKind; status: "open" | "done"; createdAt: number; resolution?: string;
+  /** "global": applies to every scenario that shows this screen (or every screen). Older flags have no scope. */
+  scope?: "scenario" | "global";
+  /** Which screen of the flow the flag was raised on ("all" for an app-wide rule). */
+  screenKey?: string;
+  /** When the engineer resolved it; scenarios passed before this are asked to re-check. */
+  resolvedAt?: number;
 };
+
+/** Does this flag apply to a scenario? Its own flags, plus global ones on any of its screens. */
+export function appliesTo(f: Flag, sc: { id: string; screens: string[] }) {
+  if (f.scope === "global") return f.screenKey === "all" || sc.screens.includes(f.screenKey ?? "");
+  return f.scenarioId === sc.id;
+}
 export type Run = { scenarioId: string; result: "pass" | "fail"; note: string; updatedAt: number; resolution?: string };
 
 export type Store = {

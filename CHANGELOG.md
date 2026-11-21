@@ -10,6 +10,12 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Added: prototype progress and global changes (2026-11-21)
+- "Works as expected" puts a green check on the scenario, and the top bar shows "N of 12 working".
+- "Global change" button: a change that applies to every scenario showing the same screen, or to every screen. It appears in every affected scenario and is resolved once for all of them. Scenarios passed before a global fix show "Re-check".
+- Each scenario lists the screens it passes through. Flags record their screen and scope.
+- Tests PROTO-13 (green check and count) and PROTO-14 (a global change reaches exactly the scenarios that share the screen).
+
 ### Changed: TPM review round 2, global workflow logic (2026-11-21)
 - **Global rules GR-1 to GR-8** for every Getting-in screen and scenario (`UI_INTERACTION_MAPS.md` §1.00): one flow map, the same layout for the same screen, consistent timing for problems, the phone's own picker for dropdowns, and one shared data set for the prototype.
 - Join screen: "Have you already been added?" is always shown and answered first. "Your name" appears for new people only. The PIN block appears once that's answered. With nobody waiting, "No, I'm new here" is already chosen (G32).
