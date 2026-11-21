@@ -56,6 +56,7 @@ identity.post("/api/join", async (c) => {
   const body = await v.jsonBody(c.req.raw);
   const name = v.displayName(body.displayName);
   const pin = v.pin(body.pin);
+  const hint = v.pinHint(body.pinHint, pin);
   const { group } = await groupFromCode(c, body.code, now);
   const { DB, PIN_PEPPER } = c.env;
 
@@ -63,13 +64,13 @@ identity.post("/api/join", async (c) => {
   let memberId: string;
   if (existing?.status === "pending") {
     // FR-2.2: the first person to open the group with a pending name sets its PIN.
-    if (!(await members.activatePendingMember(DB, PIN_PEPPER, existing.id, pin, now))) throw nameTaken();
+    if (!(await members.activatePendingMember(DB, PIN_PEPPER, existing.id, pin, now, hint))) throw nameTaken();
     memberId = existing.id;
   } else if (existing) {
     throw nameTaken();
   } else {
     try {
-      memberId = await members.insertJoinedMember(DB, PIN_PEPPER, group.id, name, pin, "self", now);
+      memberId = await members.insertJoinedMember(DB, PIN_PEPPER, group.id, name, pin, "self", now, hint);
     } catch (e) {
       if (String(e).includes("UNIQUE")) throw nameTaken(); // someone took the name a moment ago
       throw e;
@@ -111,6 +112,20 @@ identity.post("/api/recover", async (c) => {
   await members.clearPinFailures(DB, m.id, now);
   await issueMemberToken(c, DB, m.id, group.id, now);
   return c.json({ group: { id: group.id, name: group.name }, member: { id: m.id, displayName: m.display_name }, pinWasReset });
+});
+
+/**
+ * A member's PIN hint, shown on the Sign back in screen after they pick their name (G29).
+ * Same code checks and rate limits as lookup. Pending or unknown names have no hint.
+ */
+identity.post("/api/groups/hint", async (c) => {
+  const body = await v.jsonBody(c.req.raw);
+  const { group } = await groupFromCode(c, body.code, Date.now());
+  const name = v.displayName(body.displayName);
+  const row = await c.env.DB.prepare(
+    "SELECT pin_hint FROM members WHERE group_id = ? AND display_name_norm = ? AND status = 'joined'",
+  ).bind(group.id, v.normName(name)).first<{ pin_hint: string | null }>();
+  return c.json({ hint: row?.pin_hint ?? null });
 });
 
 /** Every group this browser belongs to, for the group switcher (FR-1.9). */

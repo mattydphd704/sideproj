@@ -81,16 +81,50 @@ describe("joining", () => {
     expect(results.every((r) => /^[0-9a-f]{64}$/.test(r.token_hash))).toBe(true);
   });
 
-  test("[ID-11] PIN must be 4–6 digits", async () => {
+  test("[ID-11] PIN must be exactly 4 numbers (TPM UI review round 1)", async () => {
     const g = await newGroup();
-    for (const pin of ["123", "1234567", "12a4", "", 1234]) {
+    for (const pin of ["123", "12345", "123456", "12a4", "", 1234]) {
       const r = await client().post("/api/join", { code: g.group_code, displayName: "Sam", pin });
       expect(r.status, String(pin)).toBe(400);
-      expect(r.json.error).toBe("validation");
+      expect(r.json.message).toBe("Your PIN must be 4 numbers.");
     }
-    for (const [i, pin] of ["1234", "123456"].entries()) {
-      expect((await client().post("/api/join", { code: g.group_code, displayName: `Ok${i}`, pin })).status).toBe(201);
+    expect((await client().post("/api/join", { code: g.group_code, displayName: "Ok", pin: "0042" })).status).toBe(201);
+  });
+
+  test("[ID-23] optional PIN hint: saved, max 40 characters, can't contain the PIN (G29)", async () => {
+    const g = await newGroup();
+    const bad = [
+      [{ pinHint: "x".repeat(41) }, "Hints can be up to 40 characters."],
+      [{ pinHint: "it's 2580 lol" }, "Your hint can't include your PIN."],
+      [{ pinHint: "2-5-8-0" }, "Your hint can't include your PIN."],
+    ] as const;
+    for (const [over, msg] of bad) {
+      const r = await client().post("/api/join", { code: g.group_code, displayName: "Hinty", pin: "2580", ...over });
+      expect(r.status).toBe(400);
+      expect(r.json.message).toBe(msg);
     }
+    await client().post("/api/join", { code: g.group_code, displayName: "Hinty", pin: "2580", pinHint: "  first car  " });
+    await client().post("/api/join", { code: g.group_code, displayName: "NoHint", pin: "1111", pinHint: "   " });
+    expect((await memberRow(g.id, "Hinty")).pin_hint).toBe("first car");
+    expect((await memberRow(g.id, "NoHint")).pin_hint).toBeNull();
+  });
+
+  test("[ID-24] the hint endpoint returns a joined member's hint only; lookup never includes hints", async () => {
+    const g = await newGroup();
+    await client().post("/api/join", { code: g.group_code, displayName: "Sam", pin: "1234", pinHint: "garage door" });
+    await addPendingMember(db, g.id, "Grandma");
+    expect((await client().post("/api/groups/hint", { code: g.group_code, displayName: "sam" })).json).toEqual({ hint: "garage door" });
+    expect((await client().post("/api/groups/hint", { code: g.group_code, displayName: "Grandma" })).json).toEqual({ hint: null });
+    expect((await client().post("/api/groups/hint", { code: g.group_code, displayName: "Nobody" })).json).toEqual({ hint: null });
+    expect((await client().post("/api/groups/hint", { code: "ZZZZ-ZZZZ", displayName: "Sam" })).status).toBe(400);
+    expect(JSON.stringify((await client().post("/api/groups/lookup", { code: g.group_code })).json)).not.toContain("garage");
+  });
+
+  test("[ID-25] an admin PIN reset also clears the hint", async () => {
+    const g = await newGroup();
+    const r = await client().post("/api/join", { code: g.group_code, displayName: "Sam", pin: "1234", pinHint: "old hint" });
+    await resetPin(db, r.json.member.id);
+    expect((await memberRow(g.id, "Sam")).pin_hint).toBeNull();
   });
 
   test("[ID-12] PINs are stored as salted HMACs with the pepper, never as plain text", async () => {

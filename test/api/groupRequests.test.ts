@@ -26,9 +26,18 @@ test("[REQ-01] submitting a request stores it as pending and sets a request cook
 });
 
 test("[REQ-01b] request fields are validated", async () => {
-  for (const over of [{ groupName: "" }, { groupName: "x".repeat(61) }, { currency: "dollars" }, { displayName: "" }, { pin: "12" }]) {
+  for (const over of [{ groupName: "" }, { groupName: "x".repeat(61) }, { currency: "dollars" }, { displayName: "" }, { pin: "12" }, { pin: "123456" }]) {
     expect((await ask(new Client(env), over)).status, JSON.stringify(over)).toBe(400);
   }
+});
+
+test("[REQ-07] a hint given with a request carries over to the new member when approved", async () => {
+  const c = new Client(env);
+  const req = await ask(c, { groupName: "Hint Family", pin: "4321", pinHint: "phone code" });
+  const approved = await approveRequest(db, req.json.request.id);
+  const m = await db.prepare("SELECT pin_hint FROM members WHERE id = ?").bind(approved!.memberId).first<{ pin_hint: string }>();
+  expect(m?.pin_hint).toBe("phone code");
+  expect((await ask(new Client(env), { pin: "4321", pinHint: "4321!" })).status).toBe(400);
 });
 
 test("[REQ-02] while pending, the status check says pending", async () => {

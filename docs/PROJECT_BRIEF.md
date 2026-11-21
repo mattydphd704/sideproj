@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.0, approved by TPM |
+| **Status** | v1.1, approved by TPM (round 1 UI review changes included) |
 | **Last updated** | 2026-11-21 |
 | **Phase** | Outline (no architecture or code yet) |
 
@@ -18,6 +18,7 @@
 | v0.7 | Added fair-share alerts (FR-6). Replaced "expire lists" with soft delete, permanent delete and archive (FR-7). Groups and PINs persist. Auto-archive after 12 months. Q27 resolved. New questions Q28 to Q31. |
 | v0.8 | FR-6 marked as initial logic to be tuned in test (PR-003). The admin can restore archived lists using archive metadata. Q27 to Q30 resolved. Auto-archive (Q31) moved to the backlog (B-011). Created `BUGS.md`. |
 | v0.9 | Glossary field decisions G1 to G11 applied. Giver's choice items have up to 5 links. Each group has a currency. |
+| v1.1 | TPM UI review round 1: PINs are exactly 4 numbers, shown while typing, with an optional hint (FR-1.4, FR-1.7, NFR-4, G29). The pre-added names dropdown shows only people who haven't signed in yet (FR-2.2). Open security trade-off G30. |
 | v1.0 | NFR-9 is now advisory (architecture AD-06; the exact version is backlog B-012). Invite links use the `/j/<code>` short path (FR-1.10). |
 
 ## 1. Problem
@@ -48,10 +49,10 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
   5. Inside every group, an **"Invite people"** button shares a join link that has the group code built in, using the phone's share menu or copy-to-clipboard. Recipients tap the link, enter a name and PIN, and they're in. Typing the code by hand still works as a fallback. The link uses the short path in FR-1.10.
   - The app sends no email and collects no contact details.
 - FR-1.3: Anyone with a group code can join that group.
-- FR-1.4: On joining, the member enters a **display name** and creates a **PIN**.
+- FR-1.4: On joining, the member enters a **display name** and creates a **PIN of exactly 4 numbers**, typed twice. The numbers are visible while typing. They can add an optional **PIN hint**: up to 40 characters, and it must not contain the PIN (G29).
 - FR-1.5: The browser (cookie or local storage) remembers the member, so they don't need to enter their PIN on normal visits.
 - FR-1.6: The PIN screen tells the user something like: *"You won't need this PIN every time. You'll only need it if you open your list on another device or after clearing your browser's cookies or cache."*
-- FR-1.7: **Recovery:** On a new device, a member enters the group code, picks their name and enters their PIN to restore their identity.
+- FR-1.7: **Recovery:** On a new device, a member enters the group code, picks their name and enters their PIN to restore their identity. After picking their name, they can choose to see their PIN hint, if they set one.
 - FR-1.8: Members can see the names of all other members of their group.
 - FR-1.10: **Invite link format.** Invite links always use the app's own short path: `https://<app-host>/j/<GROUPCODE>`, for example `…/j/K7QM-4XTR`.
   - Opening it goes straight to the join screen for that group, with the code already filled in.
@@ -62,7 +63,7 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 
 ### FR-2: Admin
 - FR-2.1: The admin can create groups. A group's name is set at creation.
-- FR-2.2: The admin can **manually add** members to a group by name. An added member shows as **pending** until someone opens the group with that name and sets its PIN. After that, the PIN is required to take over that name.
+- FR-2.2: The admin can **manually add** members to a group by name. An added member shows as **pending** until someone opens the group with that name and sets its PIN. After that, the PIN is required to take over that name. On the Join screen, pending names are offered in a dropdown ("Have you already been added?") that lists **only people who haven't signed in for the first time yet**.
 - FR-2.3: The admin can **delete** members from a group. The member's items are deleted, and any claims they made are released, so those items become available again.
 - FR-2.4: The admin can approve or decline "Create new group" requests from a queue.
 - FR-2.5: The admin can also be an ordinary member of a group, with their own list and claims.
@@ -142,7 +143,7 @@ The goal is to stop one member from claiming most of a person's list and leaving
 - NFR-1: Works on mobile and desktop browsers (responsive layout).
 - NFR-2: Two members can't claim the same item at once: the claim operation must be atomic.
 - NFR-3: Group codes are hard to guess. The app rate-limits attempts to join with a code.
-- NFR-4: **PIN security.** PINs are 4 to 6 digits, stored only as salted hashes, never in plain text. After 5 wrong attempts, recovery for that member locks for 15 minutes.
+- NFR-4: **PIN security.** PINs are exactly 4 digits, stored only as salted hashes, never in plain text. After 5 wrong attempts, recovery for that member locks for 15 minutes. Hints are stored as plain text and must not contain the PIN. An admin PIN reset clears the hint. *(Stronger protection for 4-digit PINs is open as G30.)*
 - NFR-5: **Server-side enforcement.** Claim data is never sent to an item's owner, and restricted items are never sent to members they're hidden from. Hiding them in the UI is not enough.
 - NFR-6: The app stores as little personal data as possible: display names, item details and links only. No email addresses, phone numbers or passwords.
 - NFR-7: The admin area is protected by a secret credential that is separate from member PINs.

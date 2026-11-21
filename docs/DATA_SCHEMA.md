@@ -88,6 +88,7 @@ CREATE TABLE group_requests (
   requester_display_name  TEXT NOT NULL CHECK (length(trim(requester_display_name)) BETWEEN 1 AND 30),
   requester_pin_hash      TEXT NOT NULL,
   requester_pin_salt      TEXT NOT NULL,
+  requester_pin_hint      TEXT CHECK (requester_pin_hint IS NULL OR length(requester_pin_hint) <= 40),  -- migration 0002
   request_token_hash      TEXT NOT NULL UNIQUE,
   status                  TEXT NOT NULL DEFAULT 'pending'
                             CHECK (status IN ('pending','approved','declined')),
@@ -110,6 +111,7 @@ CREATE TABLE members (
   is_admin             INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0,1)),
   pin_hash             TEXT,                             -- NULL while pending or after a PIN reset
   pin_salt             TEXT,
+  pin_hint             TEXT CHECK (pin_hint IS NULL OR length(pin_hint) <= 40),   -- added in migration 0002 (G29)
   failed_pin_attempts  INTEGER NOT NULL DEFAULT 0,
   locked_until         INTEGER,
   joined_at            INTEGER,
@@ -280,6 +282,12 @@ CREATE TABLE rate_limits (
 IP addresses and codes are stored **hashed**, using the pepper. Rows older than 24 hours are removed by the nightly job. Limits are configuration settings (§7).
 
 ---
+
+## 3.12 Migration history
+| Migration | Change | Why |
+|---|---|---|
+| `0001_init.sql` | All 12 tables | Schema v1.0 |
+| `0002_pin_hint.sql` | Adds `members.pin_hint` and `group_requests.requester_pin_hint` | TPM UI review round 1: optional PIN hint (G29). PINs are now exactly 4 digits, enforced by the API, since only hashes are stored. |
 
 ## 4. Key queries
 

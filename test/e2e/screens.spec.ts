@@ -16,7 +16,14 @@ test.beforeEach(async () => { await seed.clearRateLimits(); });
 test("Section 1 screens", async ({ page, browser }) => {
   const g = await seed.group("Smith Family", ["Grandma", "Uncle Ray"]);
   for (const [n, p] of [["Sam", "1234"], ["Alex", "1234"], ["Jo", "1234"], ["Pat", "1234"], ["Lee", "1234"]] as const) {
-    const ctx = await browser.newContext(); const pg = await ctx.newPage(); await joinAs(pg, g.display, n, p); await ctx.close();
+    const ctx = await browser.newContext(); const pg = await ctx.newPage();
+    await pg.goto(`/j/${g.display}`);
+    await pg.getByLabel("Your name").fill(n);
+    await typePin(pg, "pin", p); await typePin(pg, "pin2", p);
+    if (n === "Alex") await pg.getByLabel("PIN hint (optional)").fill("the garden gate");
+    await pg.getByRole("button", { name: /^Join / }).click();
+    await expect(pg).toHaveURL(/\/g\//);
+    await ctx.close();
   }
 
   // §1.1 Home
@@ -31,8 +38,14 @@ test("Section 1 screens", async ({ page, browser }) => {
   await page.goto(`/j/${g.display}`);
   await expect(page.getByRole("heading", { name: "Join Smith Family" })).toBeVisible();
   await shot(page, "03-join");
-  await page.getByRole("button", { name: "Grandma" }).click();
-  await shot(page, "04-join-picked-pre-added-name");
+  await page.getByLabel("Have you already been added?").click();
+  await shot(page, "04a-join-added-dropdown-open");
+  await page.getByRole("option", { name: "Grandma" }).click();
+  await typePin(page, "pin", "2468");
+  await shot(page, "04b-join-picked-pre-added-name");
+  await page.goto(`/j/${g.display}`);
+  await page.getByLabel("Have you already been added?").click();
+  await page.getByRole("option", { name: "No, I'm new here" }).click();
   await page.getByLabel("Your name").fill("Sam");
   await typePin(page, "pin", "1234"); await typePin(page, "pin2", "1234");
   await page.getByRole("button", { name: "Join Smith Family" }).click();
@@ -54,6 +67,9 @@ test("Section 1 screens", async ({ page, browser }) => {
   await page.locator("#rname").click();
   await shot(page, "09-sign-back-in-choose-name");
   await page.getByRole("option", { name: "Alex" }).click();
+  await page.getByRole("button", { name: "Show my hint" }).click();
+  await expect(page.getByText("Your hint: the garden gate")).toBeVisible();
+  await shot(page, "09b-sign-back-in-hint-shown");
   await typePin(page, "rpin", "0000");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("That name and PIN didn't match.", { exact: false })).toBeVisible();
@@ -62,7 +78,9 @@ test("Section 1 screens", async ({ page, browser }) => {
   await expect(page.getByText("Too many wrong PINs")).toBeVisible();
   await shot(page, "11-sign-back-in-locked");
 
-  // Inside the group (temporary placeholder) with the welcome toast
+  // Inside the group (temporary placeholder) with the welcome toast.
+  // (The steps above use up the 30-per-hour attempts on this one code, so reset the counters.)
+  await seed.clearRateLimits();
   const ctx = await browser.newContext({ ...test.info().project.use });
   const fresh = await ctx.newPage();
   await fresh.goto(`/j/${g.display}`);

@@ -36,7 +36,8 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | Term | Definition | Ref |
 |---|---|---|
 | **Display name** | A member's name as shown to the group. Must be unique within a group, ignoring upper and lower case. | FR-1.3, Q12 |
-| **PIN** | A 4 to 6 digit code a member creates when joining. It's needed only for **recovery**, not on normal visits. Stored only as a salted hash. | FR-1.4, NFR-4 |
+| **PIN** | A 4-digit code a member creates when joining, shown as they type it. It's needed only for **recovery**, not on normal visits. Stored only as a salted hash. | FR-1.4, NFR-4 |
+| **PIN hint** | An optional reminder a member writes when creating their PIN: up to 40 characters, and it must not contain the PIN. Shown on Sign back in only after they pick their name and tap "Show my hint". Cleared by an admin PIN reset. | FR-1.4, G29 |
 | **PIN lockout** | After 5 wrong PIN attempts, recovery for that member is locked for 15 minutes. | NFR-4 |
 | **PIN reset** | The admin clears a member's PIN. The member sets a new one on their next recovery. | FR-2.6 |
 | **Member token** | A random secret stored in the browser that identifies a member on later visits. Each browser or device has its own token, and one member can have several. | FR-1.5 |
@@ -150,7 +151,8 @@ These are **logical** fields, meaning the information we need to capture, not th
 | `group_id` | ref → Group | Yes | System | Internal | | |
 | `display_name` | text | Yes | User, or Admin when adding | Members, Admin | 1–30 characters (G4). Unique within the group, ignoring upper and lower case. Leading and trailing spaces are removed. | Q12 |
 | `status` | enum | Yes | System | Members, Admin | `pending` or `joined`. See C2. | FR-5.8 |
-| `pin_hash` | hash | Once joined | User (hashed by System) | **Never sent anywhere** | 4–6 digits before hashing, stored with a salt. Empty while pending, or after a PIN reset. | NFR-4 |
+| `pin_hash` | hash | Once joined | User (hashed by System) | **Never sent anywhere** | 4 digits before hashing, stored with a salt. Empty while pending, or after a PIN reset. | NFR-4 |
+| `pin_hint` | text | No | User | **Only to someone who picks that name on Sign back in** (via "Show my hint") | Up to 40 characters; must not contain the PIN; cleared on PIN reset. | G29 |
 | `failed_pin_attempts` | integer | Yes | System | Internal | Goes back to 0 after a successful recovery. | NFR-4 |
 | `locked_until` | timestamp | No | System | Internal | Set after the 5th wrong attempt, to now + 15 minutes. | NFR-4 |
 | `is_admin` | boolean | Yes | System | Internal | True when this membership belongs to the admin. | FR-2.5 |
@@ -177,6 +179,7 @@ These are **logical** fields, meaning the information we need to capture, not th
 | `requested_currency` | ISO 4217 code | Yes | Requester | Admin, Requester | Becomes the group's `currency` when the request is approved. | G9 |
 | `requester_display_name` | text | Yes | Requester | Admin, Requester | Same rules as `display_name`. | FR-1.2 |
 | `requester_pin_hash` | hash | Yes | Requester (hashed) | **Never sent anywhere** | Moved to the new member when the request is approved. | FR-1.2 |
+| `requester_pin_hint` | text | No | Requester | Nobody until approval | Moved to the new member when the request is approved. | G29 |
 | `request_token_hash` | hash | Yes | System | **Never sent anywhere** | Lets the requester's browser check its status and move into the group automatically. | FR-1.2 |
 | `status` | enum | Yes | System, Admin | Admin, Requester | `pending`, `approved` or `declined`. See C5. | FR-1.2 |
 | `created_at` / `decided_at` | timestamp | Yes / No | System | Admin | | |
@@ -350,3 +353,6 @@ The TPM confirmed these field-level decisions on 2026-11-21.
 | G15 | Join rate limits | 10 per IP address per 15 minutes; 30 per group code per hour |
 | G16 | Price storage | Whole number of the smallest unit, plus the price's own currency code. Shown without conversion. Group currency is the fallback. |
 | G17 | `http://` links | Saved, but never auto-filled |
+| G29 | PIN hint | Optional, up to 40 characters, can't contain the PIN, shown on request on Sign back in, cleared by a PIN reset (TPM UI review round 1) |
+| G30 | Extra protection for 4-digit PINs | *Pending TPM:* after 3 lockouts in 24 hours, lock until the organiser resets the PIN |
+| G31 | Keep the "Already here" names line on the Join screen | *Pending TPM:* keep it |

@@ -10,6 +10,7 @@ export type RequestRow = {
   requester_display_name: string;
   requester_pin_hash: string;
   requester_pin_salt: string;
+  requester_pin_hint: string | null;
   status: "pending" | "approved" | "declined";
   group_id: string | null;
 };
@@ -17,16 +18,16 @@ export type RequestRow = {
 /** A visitor's request for a new group (FR-1.2). Returns the raw request token for the cookie. */
 export async function createRequest(
   db: D1Database, pepper: string,
-  input: { groupName: string; currency: string; displayName: string; pin: string }, now = Date.now(),
+  input: { groupName: string; currency: string; displayName: string; pin: string; pinHint?: string | null }, now = Date.now(),
 ) {
   const id = newId();
   const token = newToken();
   const { salt, hash } = await newPinHash(pepper, input.pin);
   await db.prepare(
     `INSERT INTO group_requests (id, requested_group_name, requested_currency, requester_display_name,
-       requester_pin_hash, requester_pin_salt, request_token_hash, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-  ).bind(id, input.groupName, input.currency, input.displayName, hash, salt, await sha256Hex(token), now).run();
+       requester_pin_hash, requester_pin_salt, requester_pin_hint, request_token_hash, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+  ).bind(id, input.groupName, input.currency, input.displayName, hash, salt, input.pinHint ?? null, await sha256Hex(token), now).run();
   return { id, token };
 }
 
@@ -44,9 +45,9 @@ export async function approveRequest(db: D1Database, requestId: string, now = Da
   const memberId = newId();
   await db.batch([
     db.prepare(
-      `INSERT INTO members (id, group_id, display_name, display_name_norm, status, added_by, pin_hash, pin_salt, joined_at, created_at)
-       VALUES (?, ?, ?, ?, 'joined', 'request', ?, ?, ?, ?)`,
-    ).bind(memberId, group.id, r.requester_display_name, normName(r.requester_display_name), r.requester_pin_hash, r.requester_pin_salt, now, now),
+      `INSERT INTO members (id, group_id, display_name, display_name_norm, status, added_by, pin_hash, pin_salt, pin_hint, joined_at, created_at)
+       VALUES (?, ?, ?, ?, 'joined', 'request', ?, ?, ?, ?, ?)`,
+    ).bind(memberId, group.id, r.requester_display_name, normName(r.requester_display_name), r.requester_pin_hash, r.requester_pin_salt, r.requester_pin_hint, now, now),
     db.prepare("UPDATE group_requests SET status = 'approved', group_id = ?, decided_at = ? WHERE id = ?").bind(group.id, now, r.id),
   ]);
   return { group, memberId };

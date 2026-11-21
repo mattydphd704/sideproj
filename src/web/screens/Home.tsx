@@ -1,8 +1,7 @@
 // §1.1 Home screen: T-02, and the entry to T-05 and T-06.
 import * as React from "react";
-import { Gift } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Separator } from "../components/ui/separator";
@@ -40,13 +39,10 @@ export function Home() {
 
   return (
     <Shell>
-      <header className="flex flex-col gap-2 pt-4">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold"><Gift className="text-brand size-7" aria-hidden />{t("C-HOME-02")}</h1>
-        <p className="text-muted-foreground">{t("C-HOME-03")}</p>
-      </header>
+      {/* Header line kept empty for future use (TPM UI review round 1: heading and intro removed). */}
+      <header className="h-10" aria-hidden="true" />
       {rateWait > 0 && <RateLimitAlert seconds={rateWait} />}
       <Card>
-        <CardHeader><CardTitle>{t("C-HOME-04")}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
             <Label htmlFor="code">{t("C-HOME-05")}</Label>

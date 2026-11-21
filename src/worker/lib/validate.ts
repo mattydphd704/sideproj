@@ -16,11 +16,20 @@ export function displayName(v: unknown): string {
 export const normName = (name: string) => name.trim().replace(/\s+/g, " ").toLowerCase();
 
 export function pin(v: unknown): string {
-  const re = new RegExp(`^\\d{${LIMITS.pinMinDigits},${LIMITS.pinMaxDigits}}$`);
-  if (typeof v !== "string" || !re.test(v)) {
-    throw Errors.validation(`Your PIN must be ${LIMITS.pinMinDigits} to ${LIMITS.pinMaxDigits} digits.`);
-  }
+  if (typeof v !== "string" || !/^\d{4}$/.test(v)) throw Errors.validation("Your PIN must be 4 numbers.");
   return v;
+}
+
+/** Optional PIN hint (G29): up to 40 characters, and it must not contain the PIN itself. */
+export function pinHint(v: unknown, thePin: string): string | null {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== "string") throw Errors.validation("Your hint wasn't in the expected format.");
+  const s = v.trim().replace(/\s+/g, " ");
+  if (!s) return null;
+  if (s.length > LIMITS.pinHintMax) throw Errors.validation(`Hints can be up to ${LIMITS.pinHintMax} characters.`);
+  if (CONTROL.test(s)) throw Errors.validation("Hints can't contain special control characters.");
+  if (s.replace(/\D/g, "").includes(thePin)) throw Errors.validation("Your hint can't include your PIN.");
+  return s;
 }
 
 export async function jsonBody(req: Request): Promise<Record<string, unknown>> {

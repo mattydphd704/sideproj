@@ -30,7 +30,7 @@ function InputOTPSlot({ index, className, ...props }: React.ComponentProps<"div"
       )}
       {...props}
     >
-      {char ? "•" : null}
+      {char ?? null}
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="animate-caret-blink bg-foreground h-5 w-px duration-1000" />

@@ -8,7 +8,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { FieldError, Helper, PinField, RateLimitAlert, Shell, toastUnexpected, validPin } from "../components/common";
+import { FieldError, Helper, PinField, RateLimitAlert, Shell, hintHasPin, toastUnexpected, validPin } from "../components/common";
+import { HintField } from "./Join";
 import { t } from "../copy";
 import { api, ApiError, type RequestStatus } from "../lib/api";
 import { lastGroup, navigate } from "../lib/router";
@@ -60,7 +61,8 @@ function RequestForm({ onSent }: { onSent: (groupName: string) => void }) {
   const [name, setName] = React.useState("");
   const [pin, setPin] = React.useState("");
   const [pin2, setPin2] = React.useState("");
-  const [errors, setErrors] = React.useState<{ group?: string; name?: string; pin?: string; pin2?: string }>({});
+  const [hint, setHint] = React.useState("");
+  const [errors, setErrors] = React.useState<{ group?: string; name?: string; pin?: string; pin2?: string; hint?: string }>({});
   const [rateWait, setRateWait] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const currencies = COMMON_CURRENCIES.includes(currency) ? COMMON_CURRENCIES : [currency, ...COMMON_CURRENCIES];
@@ -73,18 +75,19 @@ function RequestForm({ onSent }: { onSent: (groupName: string) => void }) {
     if (!name.trim()) next.name = t("C-JOIN-18");
     if (!validPin(pin)) next.pin = t("C-JOIN-11");
     else if (pin !== pin2) next.pin2 = t("C-JOIN-17");
+    if (!next.pin && hintHasPin(hint, pin)) next.hint = t("C-JOIN-28");
     setErrors(next);
     if (Object.keys(next).length) {
       if (next.pin2) setPin2("");
-      document.getElementById(next.group ? "gname" : next.name ? "yname" : next.pin ? "npin" : "npin2")?.focus();
+      document.getElementById(next.group ? "gname" : next.name ? "yname" : next.pin ? "npin" : next.pin2 ? "npin2" : "hint")?.focus();
       return;
     }
     setBusy(true);
     try {
-      const r = await api.requestGroup({ groupName, currency, displayName: name, pin });
+      const r = await api.requestGroup({ groupName, currency, displayName: name, pin, pinHint: hint.trim() || undefined });
       onSent(r.request.groupName);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "validation") setErrors({ group: err.message });
+      if (err instanceof ApiError && err.code === "validation") setErrors(/hint/i.test(err.message) ? { hint: err.message } : { group: err.message });
       else if (err instanceof ApiError && err.code === "rate_limited") setRateWait(err.retryAfterSec);
       else toastUnexpected(err);
     } finally {
@@ -136,6 +139,7 @@ function RequestForm({ onSent }: { onSent: (groupName: string) => void }) {
               <PinField id="npin2" label={t("C-JOIN-13")} value={pin2} onChange={setPin2} invalid={!!errors.pin2} />
               <FieldError id="npin2-error">{errors.pin2}</FieldError>
             </div>
+            <HintField value={hint} onChange={setHint} error={errors.hint} />
             <Button type="submit" className="w-full" disabled={busy || rateWait > 0}>{busy ? t("C-NEW-09") : t("C-NEW-08")}</Button>
           </form>
         </CardContent>

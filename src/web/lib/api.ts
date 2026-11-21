@@ -35,9 +35,10 @@ export type RequestStatus = { status: "pending" | "approved" | "declined"; group
 export const api = {
   me: () => request<Me>("GET", "/api/me"),
   lookup: (code: string) => request<Lookup>("POST", "/api/groups/lookup", { code }),
-  join: (code: string, displayName: string, pin: string) => request<JoinResult>("POST", "/api/join", { code, displayName, pin }),
+  join: (code: string, displayName: string, pin: string, pinHint?: string) => request<JoinResult>("POST", "/api/join", { code, displayName, pin, pinHint }),
+  hint: (code: string, displayName: string) => request<{ hint: string | null }>("POST", "/api/groups/hint", { code, displayName }),
   recover: (code: string, displayName: string, pin: string) => request<JoinResult>("POST", "/api/recover", { code, displayName, pin }),
-  requestGroup: (b: { groupName: string; currency: string; displayName: string; pin: string }) =>
+  requestGroup: (b: { groupName: string; currency: string; displayName: string; pin: string; pinHint?: string }) =>
     request<{ request: { id: string; status: string; groupName: string } }>("POST", "/api/group-requests", b),
   currentRequest: () => request<RequestStatus>("GET", "/api/group-requests/current"),
 };

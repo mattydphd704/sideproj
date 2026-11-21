@@ -27,29 +27,32 @@ export function Helper({ id, children }: { id?: string; children: React.ReactNod
   return <p id={id} className="text-muted-foreground text-sm">{children}</p>;
 }
 
-/** PIN entry: 6 boxes, digits only, 4–6 accepted (C-JOIN-11). */
+/** PIN entry: 4 boxes, digits only, numbers visible while typing (TPM UI review round 1). */
 export function PinField(props: { id: string; value: string; onChange: (v: string) => void; label: string; invalid?: boolean; describedBy?: string; autoFocus?: boolean }) {
   return (
     <InputOTP
       id={props.id}
-      maxLength={6}
+      maxLength={4}
       pattern={REGEXP_ONLY_DIGITS}
       inputMode="numeric"
       value={props.value}
       onChange={props.onChange}
-      aria-label={`${props.label}, 4 to 6 numbers`}
+      aria-label={`${props.label}, 4 numbers`}
       aria-invalid={props.invalid || undefined}
       aria-describedby={props.describedBy}
       autoFocus={props.autoFocus}
     >
       <InputOTPGroup>
-        {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} aria-invalid={props.invalid || undefined} />)}
+        {[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} aria-invalid={props.invalid || undefined} />)}
       </InputOTPGroup>
     </InputOTP>
   );
 }
 
-export const validPin = (p: string) => /^\d{4,6}$/.test(p);
+export const validPin = (p: string) => /^\d{4}$/.test(p);
+
+/** Mirrors the server rule: the hint must not contain the PIN (G29). */
+export const hintHasPin = (hint: string, pin: string) => pin.length === 4 && hint.replace(/\D/g, "").includes(pin);
 
 export function RateLimitAlert({ seconds }: { seconds: number }) {
   return (

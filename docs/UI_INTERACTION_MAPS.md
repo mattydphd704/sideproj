@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Section 1 (Getting in) v0.2: **built** (2026-11-21) and awaiting TPM feedback. Screenshots are in `docs/screens/section-1/`. Feedback updates this document and the UI together; test UI-13 fails if the two disagree. Other sections follow. |
+| **Status** | Section 1 (Getting in) v0.3: **built, with review round 1 changes applied** (2026-11-21) and awaiting TPM feedback. Screenshots are in `docs/screens/section-1/`. Feedback updates this document and the UI together; test UI-13 fails if the two disagree. Other sections follow. |
 | **Last updated** | 2026-11-21 |
 | **Branch** | `claude/sharp-knuth-889h6a-ui-workflow` |
 | **Design language** | shadcn/ui (ADR-15) |
@@ -50,16 +50,11 @@ flowchart TD
   home -->|Start a new group| new[[Start a group screen]]
 ```
 
-### Screen
+### Screen *(revised in TPM review round 1)*
 ```
 ┌────────────────────────────────────┐
-│  🎁 Gift Lists                     │  ← heading (h1)
-│  Share wish lists with family and  │
-│  friends. No accounts. No          │
-│  passwords.                        │  ← muted text
-│                                    │
+│                                    │  ← header line, kept empty for future use
 │ ┌ Card ──────────────────────────┐ │
-│ │ Have a group code?             │ │  ← CardTitle
 │ │ Group code                     │ │  ← Label
 │ │ ┌────────────────────────────┐ │ │
 │ │ │ K7QM-4XTR                  │ │ │  ← Input (placeholder)
@@ -68,7 +63,6 @@ flowchart TD
 │ │ it. It fills this in for you.  │ │  ← helper text
 │ │ [        Continue         ]    │ │  ← Button (primary, full width)
 │ └────────────────────────────────┘ │
-│                                    │
 │ ─────────── or ───────────         │  ← Separator
 │ [     Start a new group      ]     │  ← Button (outline, full width)
 └────────────────────────────────────┘
@@ -78,9 +72,6 @@ flowchart TD
 | ID | Element | Text |
 |---|---|---|
 | C-HOME-01 | Page title (browser tab) | Gift Lists |
-| C-HOME-02 | Heading | Gift Lists |
-| C-HOME-03 | Intro | Share wish lists with family and friends. No accounts. No passwords. |
-| C-HOME-04 | Card title | Have a group code? |
 | C-HOME-05 | Field label | Group code |
 | C-HOME-06 | Placeholder | K7QM-4XTR |
 | C-HOME-07 | Helper | Got an invite link? Just open it. It fills this in for you. |
@@ -89,6 +80,8 @@ flowchart TD
 | C-HOME-10 | Divider | or |
 | C-HOME-11 | Button | Start a new group |
 | C-HOME-12 | Error: empty code | Enter the code you were given. |
+
+*Removed in review round 1: C-HOME-02 ("Gift Lists" heading), C-HOME-03 (intro line) and C-HOME-04 ("Have a group code?"). These IDs won't be reused.*
 
 ### API and errors
 | Step | Call | Result | What the person sees |
@@ -115,17 +108,17 @@ flowchart TD
   already -->|No| look[Look up the code]
   look -->|Not found| bad[Invite didn't work card]
   look -->|Found| join[Join screen: group name + who's here]
-  join -->|Taps a 'not joined yet' name| fill[Name box filled with that name]
+  join -->|Picks their name in 'Have you already been added?'| fill[Name taken from the dropdown]
   join --> name[Types name]
   fill --> pin
-  name --> pin[Creates PIN, then enters it again]
+  name --> pin[Creates a 4-number PIN, enters it again, optional hint]
   pin --> send[Join]
   send -->|OK| welcome[[Inside the group on My list + welcome toast]]
   send -->|Name taken| taken[Error under name, with link to sign back in]
   taken -->|I've been here before| recover[[Sign back in, T-05]]
 ```
 
-### Screen
+### Screen *(revised in TPM review round 1)*
 ```
 ┌────────────────────────────────────┐
 │ ← Back                             │  ← Button (ghost, small)
@@ -134,36 +127,41 @@ flowchart TD
 │ │ Already here: Sam, Alex, Jo    │ │
 │ │ and 2 more                     │ │  ← CardDescription
 │ │                                │ │
-│ │ Is one of these you?           │ │  ← only if pre-added names exist
-│ │ (Grandma) (Uncle Ray)          │ │  ← Badge buttons (outline)
+│ │ Have you already been added?   │ │  ← Label (only if not-yet-joined names exist)
+│ │ ┌──────────────────────────┐ ▾ │ │  ← Select: not-yet-joined names
+│ │ │ Choose your name         │   │ │     + "No, I'm new here"
+│ │ └──────────────────────────┘   │ │
+│ │ If the group organiser already │ │
+│ │ added your name, choose it     │ │
+│ │ here.                          │ │  ← helper
 │ │                                │ │
-│ │ Your name                      │ │  ← Label
+│ │ Your name                      │ │  ← hidden once a listed name is chosen
 │ │ ┌────────────────────────────┐ │ │
-│ │ │                            │ │ │  ← Input
-│ │ └────────────────────────────┘ │ │
+│ │ └────────────────────────────┘ │ │  ← Input
 │ │ This is how others in the      │ │
-│ │ group will see you.            │ │  ← helper
+│ │ group will see you.            │ │
 │ │                                │ │
-│ │ Create a PIN                   │ │  ← Label
-│ │ [ ][ ][ ][ ][ ][ ]             │ │  ← InputOTP, 6 slots
-│ │ 4 to 6 numbers.                │ │  ← helper
-│ │ ┌ Alert (info) ──────────────┐ │ │
-│ │ │ You won't need this PIN    │ │ │
-│ │ │ every time. You'll only    │ │ │
-│ │ │ need it if you open your   │ │ │
-│ │ │ list on another device, or │ │ │
-│ │ │ after clearing your        │ │ │
-│ │ │ browser's cookies or cache.│ │ │  ← FR-1.6
-│ │ └────────────────────────────┘ │ │
+│ │ Create a PIN                   │ │
+│ │ [ 1 ][ 2 ][ 3 ][ 4 ]           │ │  ← InputOTP, 4 slots, numbers visible
+│ │ 4 numbers.                     │ │
+│ │ (PIN explanation alert)        │ │  ← FR-1.6, unchanged
 │ │ Enter your PIN again           │ │
-│ │ [ ][ ][ ][ ][ ][ ]             │ │  ← InputOTP
-│ │                                │ │
-│ │ [   Join Smith Family     ]    │ │  ← Button (primary)
-│ │                                │ │
+│ │ [ 1 ][ 2 ][ 3 ][ 4 ]           │ │
+│ │ PIN hint (optional)            │ │  ← Input, max 40 characters
+│ │ ┌────────────────────────────┐ │ │
+│ │ └────────────────────────────┘ │ │
+│ │ A reminder only you will       │ │
+│ │ understand. Don't include your │ │
+│ │ PIN.                           │ │
+│ │ [   Join Smith Family     ]    │ │  ← Button (primary; long names wrap)
 │ │ Been here before? Sign back in │ │  ← Button (link)
 │ └────────────────────────────────┘ │
 └────────────────────────────────────┘
 ```
+
+**How people get here:** by opening an invite link (`/j/<code>`), or by entering a code on Home.
+
+**Who appears in the dropdown:** only names the organiser added that haven't signed in for the first time yet. As soon as someone signs in under a name, it disappears from the dropdown. If nobody is waiting, the dropdown isn't shown at all.
 
 **Why "enter your PIN again":** the PIN is only needed rarely, and a typo would lock the person out of their own name later. Typing it twice costs a few seconds now and saves a support call later. *(Decision G24.)*
 
@@ -175,12 +173,12 @@ flowchart TD
 | C-JOIN-03 | Who's here (1–3 names; {names} reads like "Sam, Alex and Jo") | Already here: {names} |
 | C-JOIN-04 | Who's here (more than 3; {names} is the first three) | Already here: {names} and {n} more |
 | C-JOIN-05 | Who's here (nobody yet) | You're the first one here. |
-| C-JOIN-06 | Pre-added names heading | Is one of these you? |
-| C-JOIN-07 | Pre-added names helper | The group organiser added these names. Tap yours to use it. |
+| C-JOIN-06 | Pre-added names dropdown label | Have you already been added? |
+| C-JOIN-07 | Pre-added names helper | If the group organiser already added your name, choose it here. |
 | C-JOIN-08 | Name label | Your name |
 | C-JOIN-09 | Name helper | This is how others in the group will see you. |
 | C-JOIN-10 | PIN label | Create a PIN |
-| C-JOIN-11 | PIN helper | 4 to 6 numbers. |
+| C-JOIN-11 | PIN helper | 4 numbers. |
 | C-JOIN-12 | PIN explanation (FR-1.6) | You won't need this PIN every time. You'll only need it if you open your list on another device, or after clearing your browser's cookies or cache. |
 | C-JOIN-13 | Confirm label | Enter your PIN again |
 | C-JOIN-14 | Button | Join {groupName} |
@@ -193,6 +191,11 @@ flowchart TD
 | C-JOIN-21 | Bad invite: title | This invite didn't work |
 | C-JOIN-22 | Bad invite: body | The link may be mistyped or out of date. Ask the person who sent it for a new one, or enter a group code. |
 | C-JOIN-23 | Bad invite: button | Enter a code |
+| C-JOIN-24 | Dropdown placeholder | Choose your name |
+| C-JOIN-25 | Dropdown option for new people | No, I'm new here |
+| C-JOIN-26 | Hint label | PIN hint (optional) |
+| C-JOIN-27 | Hint helper | A reminder only you will understand. Don't include your PIN. |
+| C-JOIN-28 | Error: hint contains the PIN | Your hint can't include your PIN. |
 | C-ERR-NAME-TAKEN | Error under name (from API) | Someone in this group already uses that name. If it's you, sign back in instead. |
 | C-ERR-NAME-TAKEN-LINK | Link inside that error | Sign back in |
 
@@ -203,19 +206,25 @@ flowchart TD
 | Page opens | `POST /api/groups/lookup {code}` | 200 | The join form |
 | | | 400 `invalid_code` | The "This invite didn't work" card (**C-JOIN-21 to C-JOIN-23**) |
 | | | 429 `rate_limited` | **C-ERR-RATE** |
-| Join | `POST /api/join {code, displayName, pin}` | 201 | Into the group's "My list", with toast **C-JOIN-19** |
+| Join | `POST /api/join {code, displayName, pin, pinHint?}` | 201 | Into the group's "My list", with toast **C-JOIN-19** |
 | | | 409 `name_taken` | Under the name: **C-ERR-NAME-TAKEN**, with a **Sign back in** link that opens recovery with the name filled in |
 | | | 400 `validation` | Under the matching field: the API's message |
 | | | 429 `rate_limited` | **C-ERR-RATE** |
 
-Checked in the browser before sending: name not empty (**C-JOIN-18**), PIN is 4–6 numbers (**C-JOIN-11**), and both PINs match (**C-JOIN-17**).
+Checked in the browser before sending: name not empty (**C-JOIN-18**), PIN is 4 numbers (**C-JOIN-11**), both PINs match (**C-JOIN-17**), and the hint doesn't contain the PIN (**C-JOIN-28**).
 
 ### Accessibility
-- `InputOTP` has the label "PIN, 4 to 6 numbers" and a numeric keypad (`inputmode="numeric"`). It accepts pasting.
-- Pre-added names are real buttons. Tapping one fills the name box and moves focus to the PIN.
+- `InputOTP` has the label "PIN, 4 numbers" and a numeric keypad (`inputmode="numeric"`). It accepts pasting. Numbers are shown as typed (TPM review round 1).
+- The pre-added names dropdown is a standard Select: keyboard and screen-reader friendly. Choosing a name moves focus to the PIN.
 - The info alert uses `role="note"`, not an alarming style.
 
 ---
+
+### How people reach the error states (scenarios for frames 06 and 07)
+| Frame | Scenario that triggers it | What happens next |
+|---|---|---|
+| **06 PINs don't match** | While joining, the person types one PIN in "Create a PIN" and a different one in "Enter your PIN again", usually a typo. | The second box clears and they retype it. Nothing is sent until both match. |
+| **07 This invite didn't work** | The person opens an invite link whose code is wrong: a link copied only partly, mistyped by hand, or (once code rotation exists, B-002) an old link. | "Enter a code" takes them to Home to type the right code, or they ask the sender for a new link. |
 
 ## 1.3 Sign back in: T-05 (and S-02 lockout, S-04 browser forgot me)
 
@@ -231,7 +240,7 @@ flowchart TD
   go -->|5th wrong PIN, or already locked| locked[Locked alert with the time it ends]
 ```
 
-### Screen
+### Screen *(revised in TPM review round 1)*
 ```
 ┌────────────────────────────────────┐
 │ ← Back                             │
@@ -244,14 +253,17 @@ flowchart TD
 │ │ │ Choose your name         │   │ │
 │ │ └──────────────────────────┘   │ │
 │ │ PIN                            │ │
-│ │ [ ][ ][ ][ ][ ][ ]             │ │  ← InputOTP
+│ │ [  ][  ][  ][  ]               │ │  ← InputOTP, 4 slots
+│ │ Show my hint                   │ │  ← Button (link), once a name is chosen
 │ │ [        Sign in          ]    │ │  ← Button (primary)
 │ │ Forgot your PIN? Ask the group │ │
-│ │ organiser to reset it.         │ │  ← muted text
+│ │ organiser to reset it.         │ │
 │ │ New here? Join instead         │ │  ← Button (link)
 │ └────────────────────────────────┘ │
 └────────────────────────────────────┘
 ```
+
+**How people get here (scenario for frame 08):** someone who **already joined** opens the app on a **different phone or computer**, or after **clearing their browser's cookies**, so the app no longer recognises them. They open the invite link or enter the code. On the Join screen they tap **"Been here before? Sign back in"**. They can also arrive from the name-taken error (frame 05) when they try to join again under their own name. People using their usual device never see this screen: the app remembers them.
 
 ### Wording
 | ID | Element | Text |
@@ -268,6 +280,9 @@ flowchart TD
 | C-REC-10 | Error: no name chosen | Choose your name from the list. |
 | C-REC-11 | After a PIN reset (shown if the server accepted a new PIN) | Your PIN was reset, so the PIN you just entered is now your new PIN. |
 | C-REC-12 | Success toast | Welcome back, {name}! |
+| C-REC-13 | Link, after a name is chosen | Show my hint |
+| C-REC-14 | The hint | Your hint: {hint} |
+| C-REC-15 | No hint was set | You didn't set a hint. |
 | C-ERR-CREDENTIALS | Wrong PIN | That name and PIN didn't match. Check them and try again. After 5 wrong tries, your name is locked for 15 minutes. |
 | C-ERR-LOCKED-TITLE | Locked alert title | Too many wrong PINs |
 | C-ERR-LOCKED-BODY | Locked alert body | For safety, {name} is locked until {time}. Try again then, or ask the group organiser to reset your PIN. |
@@ -278,6 +293,7 @@ flowchart TD
 | Step | Call | Result | What the person sees |
 |---|---|---|---|
 | Page opens | `POST /api/groups/lookup {code}` (reused from the Join screen) | 200 | Name list of joined members only |
+| Show my hint | `POST /api/groups/hint {code, displayName}` | 200 | **C-REC-14**, or **C-REC-15** if there's no hint |
 | Sign in | `POST /api/recover {code, displayName, pin}` | 200 | Into the group, with toast **C-REC-12** |
 | | | 401 `invalid_credentials` | **C-ERR-CREDENTIALS**, PIN boxes cleared, focus on the PIN |
 | | | 423 `locked` | **C-ERR-LOCKED** alert with the end time (from `Retry-After`). Sign in disabled until then. |
@@ -324,8 +340,9 @@ flowchart TD
 │ │ Your name                      │ │
 │ │ ┌────────────────────────────┐ │ │
 │ │ └────────────────────────────┘ │ │
-│ │ Create a PIN / Enter it again  │ │  ← same as the Join screen
+│ │ Create a PIN / Enter it again  │ │  ← same as the Join screen (4 numbers)
 │ │ (PIN explanation alert)        │ │
+│ │ PIN hint (optional)            │ │  ← same as the Join screen
 │ │ [      Send request       ]    │ │
 │ └────────────────────────────────┘ │
 └────────────────────────────────────┘
@@ -375,12 +392,12 @@ flowchart TD
 | C-NEW-19 | Error: group name too long | Group names can be up to 60 characters. |
 | C-NEW-20 | Approved toast | "{groupName}" is ready. Welcome! |
 
-PIN, name and PIN-explanation wording is reused from the Join screen (**C-JOIN-08 to C-JOIN-13, C-JOIN-17, C-JOIN-18**).
+PIN, hint, name and PIN-explanation wording is reused from the Join screen (**C-JOIN-08 to C-JOIN-13, C-JOIN-17, C-JOIN-18, C-JOIN-26 to C-JOIN-28**).
 
 ### API and errors (these endpoints are new, built with this screen)
 | Step | Call | Result | What the person sees |
 |---|---|---|---|
-| Send request | `POST /api/group-requests {groupName, currency, displayName, pin}` | 201, sets the `r_<id>` cookie | Waiting screen |
+| Send request | `POST /api/group-requests {groupName, currency, displayName, pin, pinHint?}` | 201, sets the `r_<id>` cookie | Waiting screen |
 | | | 400 `validation` | Under the matching field |
 | | | 429 `rate_limited` | **C-ERR-RATE** |
 | Waiting (every 30 s, plus "Check now") | `GET /api/group-requests/current` | `pending` | Stay; update "Last checked" |
@@ -416,6 +433,10 @@ PIN, name and PIN-explanation wording is reused from the Join screen (**C-JOIN-0
 | G27 | Currency default when requesting a group | Guess from the device's region, e.g. en-US → USD, en-GB → GBP. The person can change it. Show the 10 most common currencies first. |
 | G28 | Show the 5-try lockout rule in the wrong-PIN message? | **Yes** (see C-ERR-CREDENTIALS). |
 
+| G29 | PIN hint rules | Optional; up to 40 characters; can't contain the PIN (checked in the browser and on the server); shown on Sign back in only after the person picks their name and taps "Show my hint"; cleared by an admin PIN reset. |
+| G30 | **Security trade-off: 4-number PINs and hints** *(needs a TPM decision)* | A 4-number PIN has 10,000 combinations, compared with about 1.1 million for 4–6 numbers. Visible hints can also give clues. Today's limits (5 wrong tries, then 15 minutes locked) let a determined person try about 480 PINs a day against one name, so they'd have about a 50% chance of guessing it within roughly 10 days. **Proposed:** after 3 lockouts in 24 hours, lock the name until the organiser resets the PIN, and tell the organiser. |
+| G31 | The "Already here: Sam, Alex…" line shows the names of people who **have** joined. Keep it, given that the dropdown now only shows people who haven't? | **Keep it.** It confirms the right group, and members see each other's names anyway (FR-1.8). |
+
 **Build note (2026-11-21):** the TPM said "go ahead and build", so G24–G28 and L14–L17 are built with the recommended values above. Any of them can be changed through feedback.
 
 ---
@@ -429,6 +450,15 @@ After joining, people land on a simple placeholder until "My list" (Section 2) i
 | C-TMP-GROUP-01 | Under the group name | Signed in as {name} |
 | C-TMP-GROUP-02 | Body | Your list, everyone's lists and your claims will appear here. These screens come in the next sections of the interaction maps. |
 | C-TMP-GROUP-03 | Button | Join another group |
+
+## 1.6b TPM review round 1 (2026-11-21): changes made
+
+| # | Feedback | Change | Where |
+|---|---|---|---|
+| R1-1 | Frames 01–02: remove the "Gift Lists" heading but keep the header line; remove the intro line; remove "Have a group code?" | Heading text, intro and card title removed. The header line is kept as an empty space for future use. | §1.1; C-HOME-02/03/04 removed |
+| R1-2 | How do people reach frames 06–08? | Scenarios written up, with a "How people get here" note on each screen. No UI change. | §1.2 (frames 06, 07), §1.3 (frame 08) |
+| R1-3 | Show the PIN numbers; PINs are exactly 4 numbers; add an optional hint | Digits visible; 4 boxes; requirement changed (FR-1.4, NFR-4); hint added (G29) to Join and Start a group, with "Show my hint" on Sign back in | §1.2–§1.4; C-JOIN-11, C-JOIN-26–28, C-REC-13–15; migration 0002 |
+| R1-4 | Frames 03–05: dropdown labelled "Have you already been added?"; only list people who haven't signed in for the first time | The name buttons are now a dropdown (plus "No, I'm new here") showing only not-yet-joined names. The requirement is recorded in FR-2.2. | §1.2; C-JOIN-06, C-JOIN-07, C-JOIN-24, C-JOIN-25 |
 
 ## 1.7 Tests for this section
 

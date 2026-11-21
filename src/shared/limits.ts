@@ -12,8 +12,9 @@ export const LIMITS = {
   productDescriptionMax: 500, // G11
   linkNotesMax: 500,
   urlMax: 2000,
-  pinMinDigits: 4,
-  pinMaxDigits: 6,
+  pinMinDigits: 4, // exactly 4 (TPM UI review round 1)
+  pinMaxDigits: 4,
+  pinHintMax: 40, // G29
 } as const;
 
 // G2: group code alphabet without look-alike characters (no 0/O, 1/I/L).

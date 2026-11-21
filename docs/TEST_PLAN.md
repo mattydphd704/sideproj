@@ -121,7 +121,7 @@ npm run verify
 | ID-08 | Wrong PIN increases the failure count | NFR-4 | ✅ |
 | ID-09 | 5 wrong PINs → locked for 15 minutes, even with the correct PIN | NFR-4, G15 | ✅ |
 | ID-10 | Lock expires after 15 minutes and the count resets on success | NFR-4 | ✅ |
-| ID-11 | PIN must be 4–6 digits | FR-1.4 | ✅ |
+| ID-11 | PIN must be exactly 4 digits (changed in TPM UI review round 1) | FR-1.4 | ✅ |
 | ID-12 | PIN stored as a salted HMAC with a pepper, never in plain text | ADR-05 | ✅ |
 | ID-13a | 10 **failed** attempts from one IP in 15 minutes → blocked, even with a valid code | G15, NFR-3 | ✅ |
 | ID-13b | More than 30 attempts on one group code in an hour → blocked | G15, NFR-3 | ✅ |
@@ -133,6 +133,9 @@ npm run verify
 | ID-18 | Admin PIN reset signs the member out everywhere | G5 | ✅ |
 | ID-19 | Requests that change data without the app's custom header are rejected (CSRF) | Arch §6.1 | ✅ |
 | ID-20 | A pending member has no session until they set a PIN, so they can't act as a giver. The recipient and visibility parts are tested in ITM-06 and FS-05. | FR-5.8 | ✅ |
+| ID-23 | Optional PIN hint: saved, 40 characters at most, can't contain the PIN | G29 | ✅ |
+| ID-24 | Hint endpoint returns only a joined member's hint; lookup never includes hints | G29 | ✅ |
+| ID-25 | An admin PIN reset also clears the hint | G29 | ✅ |
 | ID-21 | Code lookup returns the group name and member names, with pending ones flagged; removed members and IDs aren't included | FR-1.7, FR-2.2 | ✅ |
 
 ### 2.4 Group requests (REQ): ✅ `test/api/groupRequests.test.ts`
@@ -144,6 +147,7 @@ npm run verify
 | REQ-04 | Decline → requester sees declined; no group created | FR-1.2 | ✅ |
 | REQ-05 | Request rate limit: more than 5 per network per hour is blocked | NFR-3 | ✅ |
 | REQ-01b | Request fields validated (group name, currency, name, PIN) | FR-1.2 | ✅ |
+| REQ-07 | A hint given with a group request carries over to the new member | G29 | ✅ |
 | REQ-06 | No request cookie → "no request" | FR-1.2 | ✅ |
 | ID-22 | After an admin PIN reset, recovery reports that the new PIN was set | G25 | ✅ |
 | CFG-01 | Without a proper PIN secret key, the API refuses to run (fails closed) | ADR-05 | ✅ |
@@ -256,7 +260,11 @@ Runs on a phone (Pixel 7) and, for tests tagged `@desktop`, also desktop Chrome,
 | UI-02 | Home: invalid code → error, focus kept on the box (phone + desktop) | T-02 | ✅ |
 | UI-03 | `/j/<code>` opens Join; an already-joined browser goes straight in | T-01, FR-1.10 | ✅ |
 | UI-04 | Join as a new person → inside the group with the welcome message, in under 2 minutes (phone + desktop) | T-03, SC-2 | ✅ |
-| UI-05 | Tap a pre-added name → joins as that person | T-04 | ✅ |
+| UI-05 | Choose a pre-added name in the "Have you already been added?" dropdown → joins as that person; the name box hides | T-04, FR-2.2 | ✅ |
+| UI-15 | The dropdown lists only people who haven't signed in yet; once someone joins under a name it disappears; no dropdown when nobody is waiting | FR-2.2 | ✅ |
+| UI-16 | PIN boxes show the numbers as typed; exactly 4 boxes | FR-1.4 | ✅ |
+| UI-17 | Hint: can't contain the PIN; "Show my hint" shows it on Sign back in; "You didn't set a hint" otherwise | G29 | ✅ |
+| UI-18 | Home has no heading, intro or card title (review round 1) | R1-1 | ✅ |
 | UI-06 | Name taken → error with a working "Sign back in" link | T-03, T-05 | ✅ |
 | UI-07 | PINs that don't match are caught before sending (confirmed by a deliberate break) | G24 | ✅ |
 | UI-08 | Sign back in on a second browser | T-05, SC-3 | ✅ |
@@ -361,13 +369,13 @@ Every requirement must map to at least one test before v1 ships.
 |---|---|---|---|---|
 | ENV | 10 | 10 | 0 | 0 |
 | Schema (SMK/SCH/CLM-01–05) | 23 | 23 | 0 | 0 |
-| ID (identity) + CFG | 25 | 25 | 0 | 0 |
-| REQ (group requests) | 7 | 7 | 0 | 0 |
-| UI, Section 1 | 14 | 14 | 0 | 0 |
+| ID (identity) + CFG | 28 | 28 | 0 | 0 |
+| REQ (group requests) | 8 | 8 | 0 | 0 |
+| UI, Section 1 | 18 | 18 | 0 | 0 |
 | ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 58 | 0 | 58 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **159** | **79** | **72** | **8** |
+| **Total automated** | **167** | **87** | **72** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

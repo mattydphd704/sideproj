@@ -8,7 +8,6 @@ test.beforeEach(async () => { await seed.clearRateLimits(); });
 test("[UI-01] Home: a valid code opens the Join screen with the group name @desktop", async ({ page }) => {
   const g = await seed.group("Lee Family");
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Gift Lists" })).toBeVisible();
   await page.getByLabel("Group code").fill(g.group_code.toLowerCase());
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Join Lee Family" })).toBeVisible();
@@ -43,12 +42,12 @@ test("[UI-04] Joining as a new person lands inside the group with a welcome mess
   expect(Date.now() - started).toBeLessThan(120_000); // success criterion 2 (joining part)
 });
 
-test("[UI-05] Tapping a pre-added name fills it in and joins as that person", async ({ page }) => {
+test("[UI-05] Choosing a pre-added name in the dropdown joins as that person", async ({ page }) => {
   const g = await seed.group("Kim Family", ["Grandma", "Uncle Ray"]);
   await page.goto(`/j/${g.display}`);
-  await expect(page.getByText("Is one of these you?")).toBeVisible();
-  await page.getByRole("button", { name: "Grandma" }).click();
-  await expect(page.getByLabel("Your name")).toHaveValue("Grandma");
+  await page.getByLabel("Have you already been added?").click();
+  await page.getByRole("option", { name: "Grandma" }).click();
+  await expect(page.getByLabel("Your name")).toHaveCount(0); // the name box hides once a listed name is chosen
   await typePin(page, "pin", "2468");
   await typePin(page, "pin2", "2468");
   await page.getByRole("button", { name: "Join Kim Family" }).click();
@@ -177,4 +176,72 @@ test("[UI-14] Keyboard only: join with Tab and Enter; errors are announced", asy
   await page.keyboard.type("4242");
   await page.keyboard.press("Enter");
   await expect(page.getByText("Signed in as Kai")).toBeVisible();
+});
+
+test("[UI-15] The dropdown lists only people who haven't signed in yet", async ({ page, browser }) => {
+  const g = await seed.group("Wu Family", ["Nana", "Pop"]);
+  await page.goto(`/j/${g.display}`);
+  await page.getByLabel("Have you already been added?").click();
+  await expect(page.getByRole("option")).toHaveText(["Nana", "Pop", "No, I'm new here"]);
+  await page.keyboard.press("Escape");
+  // Nana signs in on another device → she disappears from the list.
+  const other = await (await browser.newContext()).newPage();
+  await other.goto(`/j/${g.display}`);
+  await other.getByLabel("Have you already been added?").click();
+  await other.getByRole("option", { name: "Nana" }).click();
+  await typePin(other, "pin", "1357"); await typePin(other, "pin2", "1357");
+  await other.getByRole("button", { name: "Join Wu Family" }).click();
+  await expect(other).toHaveURL(/\/g\//);
+  await seed.clearRateLimits();
+  await page.reload();
+  await page.getByLabel("Have you already been added?").click();
+  await expect(page.getByRole("option")).toHaveText(["Pop", "No, I'm new here"]);
+  // A group with nobody waiting shows no dropdown at all.
+  const g2 = await seed.group("Solo Family");
+  await page.goto(`/j/${g2.display}`);
+  await expect(page.getByRole("heading", { name: "Join Solo Family" })).toBeVisible();
+  await expect(page.getByLabel("Have you already been added?")).toHaveCount(0);
+});
+
+test("[UI-16] PIN boxes: exactly 4, numbers visible as typed", async ({ page }) => {
+  const g = await seed.group("Digit Family");
+  await page.goto(`/j/${g.display}`);
+  await typePin(page, "pin", "7391");
+  const slots = page.locator('[data-slot="input-otp-group"]').first().locator('[data-slot="input-otp-slot"]');
+  await expect(slots).toHaveCount(4);
+  await expect(slots).toHaveText(["7", "3", "9", "1"]);
+});
+
+test("[UI-17] PIN hint: can't contain the PIN; shown on request when signing back in", async ({ page, browser }) => {
+  const g = await seed.group("Hint Family");
+  await page.goto(`/j/${g.display}`);
+  await page.getByLabel("Your name").fill("Rae");
+  await typePin(page, "pin", "2580"); await typePin(page, "pin2", "2580");
+  await page.getByLabel("PIN hint (optional)").fill("it is 2580");
+  await page.getByRole("button", { name: "Join Hint Family" }).click();
+  await expect(page.getByText("Your hint can't include your PIN.")).toBeVisible();
+  await page.getByLabel("PIN hint (optional)").fill("the blue door");
+  await page.getByRole("button", { name: "Join Hint Family" }).click();
+  await expect(page).toHaveURL(/\/g\//);
+  const nohint = await (await browser.newContext()).newPage();
+  await joinAs(nohint, g.display, "Ben");
+  const second = await (await browser.newContext()).newPage();
+  await second.goto(`/j/${g.display}/back`);
+  await second.locator("#rname").click();
+  await second.getByRole("option", { name: "Rae" }).click();
+  await second.getByRole("button", { name: "Show my hint" }).click();
+  await expect(second.getByText("Your hint: the blue door")).toBeVisible();
+  await second.locator("#rname").click();
+  await second.getByRole("option", { name: "Ben" }).click();
+  await second.getByRole("button", { name: "Show my hint" }).click();
+  await expect(second.getByText("You didn't set a hint.")).toBeVisible();
+});
+
+test("[UI-18] Home has no heading, intro or card title (review round 1) @desktop", async ({ page }) => {
+  await page.goto("/?add=1");
+  await expect(page.getByLabel("Group code")).toBeVisible();
+  await expect(page.getByText("Gift Lists", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Have a group code?")).toHaveCount(0);
+  await expect(page.getByText("No accounts. No passwords.", { exact: false })).toHaveCount(0);
+  await expect(page.locator("header")).toHaveCount(1); // header line kept for future use
 });

@@ -32,24 +32,24 @@ export async function pinMatches(pepper: string, m: Pick<MemberRow, "pin_hash" |
 /** New joined member who chose their own name (FR-1.3). */
 export async function insertJoinedMember(
   db: D1Database, pepper: string, groupId: string, name: string, pin: string,
-  addedBy: "self" | "request" = "self", now = Date.now(),
+  addedBy: "self" | "request" = "self", now = Date.now(), hint: string | null = null,
 ) {
   const { salt, hash } = await newPinHash(pepper, pin);
   const id = newId();
   await db.prepare(
-    `INSERT INTO members (id, group_id, display_name, display_name_norm, status, added_by, pin_hash, pin_salt, joined_at, last_seen_at, created_at)
-     VALUES (?, ?, ?, ?, 'joined', ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, groupId, name, normName(name), addedBy, hash, salt, now, now, now).run();
+    `INSERT INTO members (id, group_id, display_name, display_name_norm, status, added_by, pin_hash, pin_salt, pin_hint, joined_at, last_seen_at, created_at)
+     VALUES (?, ?, ?, ?, 'joined', ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, groupId, name, normName(name), addedBy, hash, salt, hint, now, now, now).run();
   return id;
 }
 
 /** A pending member (added by the admin) sets their PIN on first visit and becomes joined (FR-2.2). */
-export async function activatePendingMember(db: D1Database, pepper: string, memberId: string, pin: string, now = Date.now()) {
+export async function activatePendingMember(db: D1Database, pepper: string, memberId: string, pin: string, now = Date.now(), hint: string | null = null) {
   const { salt, hash } = await newPinHash(pepper, pin);
   const r = await db.prepare(
-    `UPDATE members SET status = 'joined', pin_hash = ?, pin_salt = ?, joined_at = ?, last_seen_at = ?
+    `UPDATE members SET status = 'joined', pin_hash = ?, pin_salt = ?, pin_hint = ?, joined_at = ?, last_seen_at = ?
      WHERE id = ? AND status = 'pending'`,
-  ).bind(hash, salt, now, now, memberId).run();
+  ).bind(hash, salt, hint, now, now, memberId).run();
   return r.meta.changes === 1;
 }
 
@@ -66,7 +66,7 @@ export async function addPendingMember(db: D1Database, groupId: string, name: st
 /** Admin PIN reset (FR-2.6, G5): clears the PIN and signs the member out on every device. */
 export async function resetPin(db: D1Database, memberId: string, now = Date.now()) {
   await db.batch([
-    db.prepare("UPDATE members SET pin_hash = NULL, pin_salt = NULL, failed_pin_attempts = 0, locked_until = NULL WHERE id = ?").bind(memberId),
+    db.prepare("UPDATE members SET pin_hash = NULL, pin_salt = NULL, pin_hint = NULL, failed_pin_attempts = 0, locked_until = NULL WHERE id = ?").bind(memberId),
     revokeAllTokens(db, memberId, now),
   ]);
 }

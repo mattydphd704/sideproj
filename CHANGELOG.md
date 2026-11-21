@@ -10,6 +10,14 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Changed: TPM UI review round 1 (2026-11-21)
+- Home: "Gift Lists" heading, intro line and "Have a group code?" removed; the header line is kept for future use (R1-1).
+- Scenarios documented for how people reach frames 06–08 (R1-2).
+- PINs are exactly 4 numbers, shown while typing, with an optional PIN hint (40 characters at most, can't contain the PIN, shown on request on Sign back in, cleared by a PIN reset). Brief v1.1 (FR-1.4, FR-1.7, NFR-4), G29, migration `0002_pin_hint.sql`, new `POST /api/groups/hint` (R1-3).
+- The Join screen's pre-added names are a "Have you already been added?" dropdown listing only people who haven't signed in yet (FR-2.2) (R1-4).
+- Tests: ID-11 updated; ID-23–25, REQ-07, UI-15–18 added; UI-05 updated. Screenshots regenerated (20).
+- Open for TPM: G30 (extra protection for 4-digit PINs), G31 (keep the "Already here" line).
+
 ### Added: Section 1 screens built (2026-11-21)
 - AR-08 approved and installed (shadcn/ui: Tailwind 4, Radix UI, lucide icons, sonner, input-otp and helpers): 0 vulnerabilities, no install scripts.
 - API: `POST /api/group-requests` and `GET /api/group-requests/current` (request, wait, approve or decline, with automatic move-in); recovery reports `pinWasReset` (G25); lookup returns the group ID; the API fails closed without a proper PIN secret key.

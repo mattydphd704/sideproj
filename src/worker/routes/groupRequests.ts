@@ -34,7 +34,9 @@ groupRequests.post("/api/group-requests", async (c) => {
     currency: currency(body.currency),
     displayName: v.displayName(body.displayName),
     pin: v.pin(body.pin),
+    pinHint: null as string | null,
   };
+  input.pinHint = v.pinHint(body.pinHint, input.pin);
   const ip = c.req.header("cf-connecting-ip") ?? "unknown";
   const wait = await hit(c.env.DB, await bucketKey(c.env.PIN_PEPPER, "req", ip), REQUEST_LIMIT, now);
   if (wait) throw Errors.rateLimited(wait);
