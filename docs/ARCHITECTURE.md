@@ -2,10 +2,11 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.1, awaiting TPM review |
+| **Status** | DRAFT v0.2, awaiting TPM review |
 | **Last updated** | 2026-11-21 |
 | **Based on** | `PROJECT_BRIEF.md` v0.9, `GLOSSARY.md` rev 3 |
 | **Hosting constraint (TPM)** | Cloudflare, using the Free plan or the **Workers Paid** plan ($5 a month) |
+| **Revisions** | v0.1 first draft · v0.2 TPM decisions on A1, A2, A4 and A5 recorded; A3 advice added |
 
 Cloudflare limits quoted here were checked against Cloudflare's docs on 2026-11-21 (sources in §12). Anything marked **[verify]** must be rechecked in the Cloudflare dashboard when the account is set up.
 
@@ -184,6 +185,16 @@ Steps 2 and 4 aren't in one transaction (AD-06), so a simultaneous claim by some
 - With Access, the glossary field `admin_credential_hash` isn't needed. If you choose AD-04's fallback instead, it comes back as a hashed secret set with a Worker Secret.
 - Admin pages cover: group requests queue, create group, add or delete members, reset PIN, archive or restore lists, fair-share buffer per group.
 
+### 6.10 URLs and link shortening
+- The app uses `giftlist-dev.<account-subdomain>.workers.dev` (and later `giftlist-prod…`).
+- **Using TinyURL for the app's home page is fine.**
+- **Don't shorten invite links.** An invite link contains the group code, which is the only thing protecting a group (NFR-3). A shortener means:
+  - a third party stores the code;
+  - short links can be guessed or enumerated;
+  - the code survives in the shortener after the group would have rotated it (B-002).
+
+  Instead, the app's **Invite people** button shares the full link through the phone's share menu, so length doesn't matter. If a short link is ever needed, we can add our own `/j/<code>` path to the app later.
+
 ### 6.9 Observability
 - Workers Logs: structured JSON logs. **No PINs, tokens or full product URLs in logs.**
 - The nightly job logs how many items it deleted. Errors are logged with a request ID.
@@ -251,11 +262,13 @@ Each of these will get its own file in `docs/DECISIONS/` once approved.
 | ID | Decision | Status |
 |---|---|---|
 | AD-01 | Cloudflare Workers, Static Assets and D1 as the platform | Proposed |
-| AD-02 | Free plan for local and dev; **Workers Paid ($5) for prod** | Proposed, **TPM decision** |
+| AD-02 | Free plan for local and dev, which is the current account. **The TPM upgrades to Workers Paid before the first prod deploy.** This is a prod readiness gate. | **Accepted (A1)** |
 | AD-03 | TypeScript, Hono, React + Vite, hand-written SQL, Vitest, Playwright | Proposed |
-| AD-04 | Admin sign-in via **Cloudflare Access**. Fallback: our own admin secret | Proposed, **TPM decision** |
+| AD-04 | Admin sign-in via **Cloudflare Access**. Fallback: our own admin secret | **Accepted (A2)** |
 | AD-05 | PINs hashed with HMAC-SHA-256 and a secret pepper, not a slow hash | Proposed |
-| AD-06 | Fair-share check is advisory and not in the same transaction as the claim. The claim itself is atomic via a unique index. **This changes NFR-9's wording.** | Proposed, **TPM decision** |
+| AD-06 | Fair-share check is advisory and not in the same transaction as the claim. The claim itself is atomic via a unique index. **This changes NFR-9's wording.** | Recommended. Awaiting TPM confirmation (A3) |
+| AD-10 | URLs: free `*.workers.dev` addresses for dev and for now. No custom domain. Invite links aren't shortened (see §6.10). | **Accepted (A4)** |
+| AD-11 | The TPM owns the Cloudflare account. The engineer deploys to dev. Prod deploys need the TPM's go-ahead each time. | **Accepted (A5)** |
 | AD-07 | Refresh with a lightweight version check, only while the tab is visible. No real-time connections in v1 | Proposed |
 | AD-08 | Auto-fill runs in a separate request after saving, with the safety limits in §6.7 | Proposed |
 | AD-09 | All responses built by one view-builder module, following glossary Part D | Proposed |
@@ -270,7 +283,7 @@ None of these have been granted. **I won't use any of them until you approve eac
 
 | ID | What | Why | When needed | Scope / risk |
 |---|---|---|---|---|
-| AR-01 | **Cloudflare account**, plus an **API token** limited to Workers Scripts (edit), D1 (edit) and Account Settings (read) for **dev** only | To deploy `giftlist-dev` and run D1 migrations | When we first deploy to dev, after local development is done | Owned by you. Token limited to dev resources if possible. **Not needed for local development or tests.** |
+| AR-01 | **Status: partly granted.** The TPM connected the Cloudflare connector (2026-11-21). It has been used only for read-only checks so far. Any create, change or deploy action still needs a go-ahead at the first dev deploy. **Original request:** a **Cloudflare account**, plus an **API token** limited to Workers Scripts (edit), D1 (edit) and Account Settings (read) for **dev** only | To deploy `giftlist-dev` and run D1 migrations | When we first deploy to dev, after local development is done | Owned by you. Token limited to dev resources if possible. **Not needed for local development or tests.** |
 | AR-02 | **npm registry** in this container | To install packages: hono, react, vite, wrangler, vitest and `@cloudflare/vitest-pool-workers` | Start of coding | Public packages only. Usually allowed by default. |
 | AR-03 | **Outbound HTTPS to retailer sites from this container** | To run the PR-002 auto-fill experiment with real product links | The PR-002 experiment | Read-only fetches to a list of retailer hosts that you approve. |
 | AR-04 | **Cloudflare Access (Zero Trust)** enabled on the account, with your email as the only allowed admin | Admin sign-in (AD-04) | Before admin features are tested in dev | Free plan. You do the setup in the dashboard, and I'll give you the steps. |
@@ -293,8 +306,8 @@ None of these have been granted. **I won't use any of them until you approve eac
 
 | # | Question | Engineer's recommendation |
 |---|---|---|
-| A1 | Which plan for prod (AD-02)? | Workers Paid, $5 a month |
-| A2 | Admin sign-in (AD-04)? | Cloudflare Access |
+| A1 | Which plan for prod (AD-02)? | **Decided:** Free for dev now. The TPM upgrades to Paid before prod. |
+| A2 | Admin sign-in (AD-04)? | **Decided:** Cloudflare Access |
 | A3 | Is the fair-share race acceptable (AD-06)? It means changing NFR-9 from "same transaction" to "checked at claim time, advisory". | Yes |
-| A4 | Custom domain, or `workers.dev` for v1? | `workers.dev` for dev. Your call for prod. |
-| A5 | Who owns the Cloudflare account and deploys? | You own the account. I deploy to dev with a scoped token (AR-01). Prod deploys only with your go-ahead each time (AR-07). |
+| A4 | Custom domain, or `workers.dev` for v1? | **Decided:** `workers.dev`, using TinyURL for the home page if needed. Invite links aren't shortened (§6.10). |
+| A5 | Who owns the Cloudflare account and deploys? | **Decided:** as recommended. |
