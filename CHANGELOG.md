@@ -24,3 +24,14 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/TEST_PLAN.md`: every test with an ID, what it proves, and requirement and success-criteria coverage (137 tests: 32 passing, 97 planned, 8 blocked on access).
 - `npm run verify` (`scripts/verify.mjs`): runs 9 environment checks plus the full test suite and writes `docs/TEST_RESULTS.md`, with run history.
 - Test IDs added to every test name for traceability.
+
+### Added: identity and access (2026-11-21)
+- `POST /api/join`: join with a group code, display name and PIN. Picking a pending name on first visit sets its PIN.
+- `POST /api/recover`: sign in on a new device with name and PIN. Lockout after 5 wrong PINs for 15 minutes. After an admin PIN reset, the next PIN entered becomes the new one.
+- `POST /api/groups/lookup`: group name and member list for the join and recovery screens.
+- `GET /api/me`: every group this browser belongs to, for the group switcher.
+- Secure member cookies (`HttpOnly`, `Secure`, `SameSite=Lax`, 400 days, one per group). Only token hashes are stored.
+- PINs stored as HMAC-SHA-256 with a salt and pepper (ADR-05).
+- Rate limits (G15) with hashed keys. CSRF protection on all data-changing requests. Group codes accepted with or without the dash, in any case. Logs never include codes, PINs or tokens.
+- 23 identity tests (ID-01 to ID-21). The CSRF and lockout tests were confirmed to fail when their protection is deliberately removed.
+- `@types/node` added (approved), so type checking now covers tests and scripts.

@@ -9,7 +9,8 @@
       "DOM.Iterable"
     ],
     "types": [
-      "@cloudflare/workers-types"
+      "@cloudflare/workers-types",
+      "node"
     ],
     "jsx": "react-jsx",
     "strict": true,
@@ -22,6 +23,9 @@
   },
   "include": [
     "src",
-    "vite.config.ts"
+    "test",
+    "scripts",
+    "vite.config.ts",
+    "vitest.config.ts"
   ]
 }

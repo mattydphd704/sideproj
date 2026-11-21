@@ -32,6 +32,7 @@ Committing `node_modules` would add hundreds of megabytes of files, some of them
 | @cloudflare/workers-types | 5.20261106.1 | Dev: types |
 | @types/react, @types/react-dom | 19.3.0 | Dev: types |
 | vitest | 4.1.12 | Dev: tests. 4.x is required by the Workers test pool. |
+| @types/node | 22.20.5 | Dev: Node type definitions for tests and scripts (added 2026-11-21) |
 | @playwright/test | 1.63.0 | Dev: end-to-end tests, matching the browser already installed in the container |
 
 `@vitejs/plugin-react` was left out because Vite handles JSX on its own and the plugin isn't needed.
@@ -40,7 +41,7 @@ Committing `node_modules` would add hundreds of megabytes of files, some of them
 1. **Removed `@cloudflare/vitest-pool-workers`.** The first `npm audit` found 6 high-severity advisories (sharp, undici, zod), all inside this one package's bundled copy of an older wrangler and miniflare. Following this policy, the package was dropped rather than overridden. Tests now run in Node against a real local D1 database from the approved wrangler (`getPlatformProxy`). Result: `npm audit` reports **0 vulnerabilities**, from 98 packages. See BUG-001.
 2. **`legacy-peer-deps=true` in `.npmrc`.** npm 10.9 crashes with an internal error (`edgesOut`) when resolving vitest's optional peer packages. This setting only stops npm from auto-installing peer packages. Every peer we need is listed explicitly, and the lockfile checksums still apply. See BUG-002.
 3. **`ignore-scripts=true` needed no exceptions.** Everything installed and ran without install scripts.
-4. **Pending request:** `@types/node` (type definitions only, no runtime code) so the type checker can cover test files. Until it's approved, `npm run typecheck` covers `src/` only, and tests are still type-checked when Vitest runs them.
+4. **`@types/node` 22.20.5 approved by TPM (2026-11-21).** Type definitions only, no code that runs. The type checker now covers `src/`, `test/` and `scripts/`.
 
 ## Consequences
 We get the same packages on every machine, and tampering is detected. We run up to 2 weeks behind the newest releases, and security patches can be fast-tracked with TPM approval. Some packages may need their install script; any such exception is recorded here.

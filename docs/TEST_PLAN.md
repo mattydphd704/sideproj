@@ -40,6 +40,7 @@ This plan lists **every test we run or will run**, what each one proves, and whi
 3. **A failing test is never skipped, disabled or deleted to get a green run.** It's fixed, or logged in BUGS.md with the test ID, and the run is reported as FAIL.
 4. **Tests use no real data and no internet.** Auto-fill uses saved sample pages. Real retailer tests need AR-03.
 5. **Every bug fix adds a test** that would have caught it.
+6. **Tests are checked against deliberate breaks.** For security-critical tests, the engineer temporarily breaks the protection to confirm the test fails, then restores it. Done for ID-19 (CSRF) and ID-09 (PIN lockout) on 2026-11-21.
 
 ### 1.3 How you can check results
 - **Read [TEST_RESULTS.md](TEST_RESULTS.md) on GitHub:** the latest result, every check and test with ✅/❌, and a history of runs.
@@ -106,29 +107,32 @@ npm run verify
 | CLM-04 | **5 simultaneous claims → exactly 1 succeeds** | NFR-2, success criterion 4 | ✅ |
 | CLM-05 | Released claim must record when it was released | DATA_SCHEMA §3.8 | ✅ |
 
-### 2.3 Identity and access (ID): 🟡 next step
+### 2.3 Identity and access (ID): ✅ `test/api/identity.test.ts`
 | ID | Test | Requirement | Status |
 |---|---|---|---|
-| ID-01 | Join with a valid code → joined member, token cookie set | FR-1.3–1.5 | 🟡 |
-| ID-02 | Wrong or unknown code → the same generic error (doesn't reveal whether a group exists) | FR-1.10, NFR-3 | 🟡 |
-| ID-03 | Duplicate display name rejected with a clear message | Q12 | 🟡 |
-| ID-04 | Picking a pending name on first visit sets the PIN and joins | FR-2.2 | 🟡 |
-| ID-05 | Cookie is `HttpOnly`, `Secure` and `SameSite=Lax`; one cookie per group | Arch §6.1 | 🟡 |
-| ID-06 | Only the token's hash is stored; the raw token never appears in the database | NFR-4, ADR-05 | 🟡 |
-| ID-07 | Recovery with the correct PIN issues a new token; other devices stay signed in | FR-1.7 | 🟡 |
-| ID-08 | Wrong PIN increases the failure count | NFR-4 | 🟡 |
-| ID-09 | 5 wrong PINs → locked for 15 minutes, even with the correct PIN | NFR-4, G15 | 🟡 |
-| ID-10 | Lock expires after 15 minutes and the count resets on success | NFR-4 | 🟡 |
-| ID-11 | PIN must be 4–6 digits | FR-1.4 | 🟡 |
-| ID-12 | PIN stored as a salted HMAC with a pepper, never in plain text | ADR-05 | 🟡 |
-| ID-13 | Join rate limits: 10 per IP per 15 minutes, 30 per code per hour | G15, NFR-3 | 🟡 |
-| ID-14 | `/j/` code accepted with or without the dash, in any case | FR-1.10 | 🟡 |
-| ID-15 | Group codes, PINs and tokens never appear in logs | Arch §6.9, §6.10 | 🟡 |
-| ID-16 | One browser in several groups: `/api/me` lists them all | FR-1.9 | 🟡 |
-| ID-17 | Removed member's tokens stop working | FR-2.3 | 🟡 |
-| ID-18 | Admin PIN reset signs the member out everywhere | G5 | 🟡 |
-| ID-19 | Requests that change data without the app's custom header are rejected (CSRF) | Arch §6.1 | 🟡 |
-| ID-20 | Pending members can't be recipients, givers or visibility targets | FR-5.8 | 🟡 |
+| ID-01 | Join with a valid code → joined member, token cookie set | FR-1.3–1.5 | ✅ |
+| ID-02 | Wrong or unknown code → the same generic error (doesn't reveal whether a group exists) | FR-1.10, NFR-3 | ✅ |
+| ID-03 | Duplicate display name rejected with a clear message | Q12 | ✅ |
+| ID-04 | Picking a pending name on first visit sets the PIN and joins | FR-2.2 | ✅ |
+| ID-05 | Cookie is `HttpOnly`, `Secure` and `SameSite=Lax`; one cookie per group | Arch §6.1 | ✅ |
+| ID-06 | Only the token's hash is stored; the raw token never appears in the database | NFR-4, ADR-05 | ✅ |
+| ID-07 | Recovery with the correct PIN issues a new token; other devices stay signed in | FR-1.7 | ✅ |
+| ID-08 | Wrong PIN increases the failure count | NFR-4 | ✅ |
+| ID-09 | 5 wrong PINs → locked for 15 minutes, even with the correct PIN | NFR-4, G15 | ✅ |
+| ID-10 | Lock expires after 15 minutes and the count resets on success | NFR-4 | ✅ |
+| ID-11 | PIN must be 4–6 digits | FR-1.4 | ✅ |
+| ID-12 | PIN stored as a salted HMAC with a pepper, never in plain text | ADR-05 | ✅ |
+| ID-13a | 10 **failed** attempts from one IP in 15 minutes → blocked, even with a valid code | G15, NFR-3 | ✅ |
+| ID-13b | More than 30 attempts on one group code in an hour → blocked | G15, NFR-3 | ✅ |
+| ID-13c | Rate-limit keys store hashes, never IP addresses or codes | DATA_SCHEMA §3.11 | ✅ |
+| ID-14 | `/j/` code accepted with or without the dash, in any case | FR-1.10 | ✅ |
+| ID-15 | Group codes, PINs and tokens never appear in logs | Arch §6.9, §6.10 | ✅ |
+| ID-16 | One browser in several groups: `/api/me` lists them all | FR-1.9 | ✅ |
+| ID-17 | Removed member's tokens stop working | FR-2.3 | ✅ |
+| ID-18 | Admin PIN reset signs the member out everywhere | G5 | ✅ |
+| ID-19 | Requests that change data without the app's custom header are rejected (CSRF) | Arch §6.1 | ✅ |
+| ID-20 | A pending member has no session until they set a PIN, so they can't act as a giver. The recipient and visibility parts are tested in ITM-06 and FS-05. | FR-5.8 | ✅ |
+| ID-21 | Code lookup returns the group name and member names, with pending ones flagged; removed members and IDs aren't included | FR-1.7, FR-2.2 | ✅ |
 
 ### 2.4 Group requests (REQ): 🟡
 | ID | Test | Requirement | Status |
@@ -289,7 +293,7 @@ Every requirement must map to at least one test before v1 ships.
 
 | Requirement | Tests |
 |---|---|
-| FR-1 Groups and access | ID-01–ID-20, REQ-01–05, ENV-08, SCH-02–08 |
+| FR-1 Groups and access | ID-01–ID-21, REQ-01–05, ENV-08, SCH-02–08 |
 | FR-2 Admin | ADM-01–09, LIF-12, REQ-03–04 |
 | FR-3 My list | ITM-01–08, SCH-09–16, AF-01–07 |
 | FR-4 Dashboard | DSH-01–03, VIS-01–10 |
@@ -298,7 +302,7 @@ Every requirement must map to at least one test before v1 ships.
 | FR-7 Delete, archive, restore | LIF-01–12, SCH-10–11, SCH-17, VIS-06–08 |
 | NFR-1 Mobile | E2E-08 |
 | NFR-2 Atomic claims | CLM-01–05, CLM-13 |
-| NFR-3 Code protection | SCH-03, ID-02, ID-13–14 |
+| NFR-3 Code protection | SCH-03, ID-02, ID-13a–c, ID-14 |
 | NFR-4 PIN security | ID-06–12 |
 | NFR-5 Server enforcement | VIS-01–10 |
 | NFR-6 Minimal personal data | VIS-10, ID-15 |
@@ -313,7 +317,7 @@ Every requirement must map to at least one test before v1 ships.
 |---|---|---|
 | 1 | Admin creates a group in under 1 minute | ADM-03, UAT |
 | 2 | Join and add first item in under 2 minutes | E2E-01, UAT |
-| 3 | Recover identity on a second device | ID-07, E2E-04 |
+| 3 | Recover identity on a second device | **ID-07 ✅**, E2E-04 |
 | 4 | No double claims, even when simultaneous | **CLM-04 ✅**, CLM-13 |
 | 5 | Owner never receives claim info | VIS-01, E2E-03 |
 | 6 | Hidden items never sent to excluded members | VIS-02, CLM-08 |
@@ -330,10 +334,11 @@ Every requirement must map to at least one test before v1 ships.
 |---|---|---|---|---|
 | ENV | 9 | 9 | 0 | 0 |
 | Schema (SMK/SCH/CLM-01–05) | 23 | 23 | 0 | 0 |
-| ID / REQ / ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 83 | 0 | 83 | 0 |
+| ID (identity) | 23 | 23 | 0 | 0 |
+| REQ / ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 63 | 0 | 63 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **137** | **32** | **97** | **8** |
+| **Total automated** | **140** | **55** | **77** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

@@ -379,7 +379,7 @@ At 100 groups × 15 members × 20 items × 2 links, plus claims and history, the
 | `PIN_MAX_ATTEMPTS` / `PIN_LOCKOUT_MINUTES` | 5 / 15 | NFR-4 |
 | `DASHBOARD_REFRESH_SECONDS` | 30 | FR-4.3 |
 | `FAIR_SHARE_BUFFER_DEFAULT` | 1.0 | FR-6.3 |
-| `JOIN_RATE_LIMIT` | 10 per IP per 15 minutes; 30 per code per hour (G15) | NFR-3 |
+| `JOIN_RATE_LIMIT` | 10 **failed** attempts per IP per 15 minutes; 30 attempts (any result) per group code per hour (G15). Counting only failures per IP means a household on one network can all join without tripping it. | NFR-3 |
 | `PIN_PEPPER` *(secret)* | — | AD-05 |
 
 Note that 90 also appears in the archive SQL (§4.3); in code it comes from `SOFT_DELETE_DAYS`.

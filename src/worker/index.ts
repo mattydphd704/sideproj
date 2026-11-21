@@ -1,28 +1,44 @@
 import { Hono } from "hono";
+import type { Env } from "./env";
+import { ApiError, errorResponse } from "./lib/errors";
+import { csrf } from "./middleware/csrf";
+import { identity } from "./routes/identity";
 
-export type Env = {
-  DB: D1Database;
-  APP_ENV: string;
-  SOFT_DELETE_DAYS: string;
-  PIN_MAX_ATTEMPTS: string;
-  PIN_LOCKOUT_MINUTES: string;
-  DASHBOARD_REFRESH_SECONDS: string;
-  FAIR_SHARE_BUFFER_DEFAULT: string;
-};
+export type { Env };
 
-export const app = new Hono<{ Bindings: Env }>();
+export function createApp() {
+  const app = new Hono<{ Bindings: Env }>();
 
-// Health check: confirms the Worker is running and the database is reachable.
-app.get("/api/health", async (c) => {
-  const row = await c.env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
-  return c.json({ ok: row?.ok === 1, env: c.env.APP_ENV });
-});
+  app.use("/api/*", csrf);
 
-app.notFound((c) => c.json({ error: "not_found" }, 404));
+  // Health check: confirms the Worker is running and the database is reachable.
+  app.get("/api/health", async (c) => {
+    const row = await c.env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+    return c.json({ ok: row?.ok === 1, env: c.env.APP_ENV });
+  });
+
+  app.route("/", identity);
+
+  app.notFound((c) => c.json({ error: "not_found", message: "Not found." }, 404));
+
+  // Known errors become friendly JSON. Anything else is logged without request
+  // details (no codes, PINs or tokens in logs) and returns a generic message.
+  app.onError((err, c) => {
+    if (err instanceof ApiError) return errorResponse(c, err);
+    console.error(JSON.stringify({ level: "error", msg: "unhandled", name: err.name, path: redactPath(c.req.path) }));
+    return c.json({ error: "server_error", message: "Something went wrong. Please try again." }, 500);
+  });
+
+  return app;
+}
+
+/** Invite paths contain group codes, so they're never logged as-is (architecture §6.10). */
+export const redactPath = (p: string) => (p.startsWith("/j/") ? "/j/<redacted>" : p);
+
+export const app = createApp();
 
 export default {
   fetch: app.fetch,
-  // Nightly job (NFR-10): permanently delete items past the 90-day window.
-  // Implemented in a later step; for now this is a no-op placeholder.
+  // Nightly job (NFR-10): permanently delete items past the 90-day window. Built in a later step.
   async scheduled(_controller, _env, _ctx) {},
 } satisfies ExportedHandler<Env>;
