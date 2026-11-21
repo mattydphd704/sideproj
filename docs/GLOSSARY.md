@@ -4,7 +4,7 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 
 | | |
 |---|---|
-| **Last updated** | 2026-11-21 (brief v0.8, glossary rev 3) |
+| **Last updated** | 2026-11-21 (brief v1.0, glossary rev 4: aligned with schema v0.2) |
 | **Status** | Reviewed by TPM. Part E decisions applied. |
 
 **Key:**
@@ -196,7 +196,6 @@ These are **logical** fields, meaning the information we need to capture, not th
 | `starred` | boolean | Yes | User | Viewers of the item | Default false. | FR-3.5 |
 | `status` | enum | Yes | System | Viewers of the item | `active`, `deleted` or `archived`. See C1. | FR-7 |
 | `deleted_at` | timestamp | When deleted | System | Owner | Starts the 90-day countdown. | FR-7.1 |
-| `deleted_days_remaining` | integer | When archived from deleted | System | Internal | Freezes the countdown while the item is archived. Used by Restore archive. | FR-7.3 |
 | `archive_batch_id` | ref → Archive batch | When archived | System | Internal | | FR-7.3 |
 | `readded_from_item_id` | ref → Item | No | System | Internal | Set on an item copied by Re-add. Lets us spot duplicates after Restore archive. | FR-7.4 |
 | `created_at` | timestamp | Yes | System | Viewers of the item | | |
@@ -265,7 +264,7 @@ The auto-fill experiment (PR-002) will confirm which detail fields matter for ea
 | `group_id` | ref → Group | Yes | System | Admin | | |
 | `archived_at` / `archived_by` | timestamp / ref → Admin | Yes | System | Admin | Members see the date as "Archived <date>". | FR-7.3 |
 | `restored_at` / `restored_by` | timestamp / ref → Admin | No | System | Admin | Empty until the batch is restored. | FR-7.4 |
-| *Per item, recorded at archive time:* `item_id`, `prior_status` (`active` or `deleted`), `deleted_days_remaining` | | Yes | System | Internal | Restore archive puts each item back to its `prior_status`. | FR-7.4 |
+| *Per item, recorded at archive time:* `item_id`, `prior_status` (`active` or `deleted`), `deleted_days_remaining` | | Yes | System | Internal | Restore archive puts each item back to its `prior_status`. `deleted_days_remaining` freezes the 90-day countdown while archived. It's stored here rather than on the item (schema §3.5). | FR-7.4 |
 
 ## B10. Settings and admin
 
@@ -345,4 +344,9 @@ The TPM confirmed these field-level decisions on 2026-11-21.
 | G10 | History of released claims | Kept internally and never shown |
 | G11 | Maximum length of a product description | 500 characters |
 
-New open points will be added here as G12 onwards.
+| G12 | Removed members' records | Backlog B-013. Interim: keep, marked `removed` |
+| G13 | Items left with no viewers | Backlog B-014. Interim: owner only |
+| G14 | Claim history when an item is permanently deleted | Deleted with the item. The tombstone remains. |
+| G15 | Join rate limits | 10 per IP address per 15 minutes; 30 per group code per hour |
+| G16 | Price storage | *Pending TPM* |
+| G17 | `http://` links | Saved, but never auto-filled |

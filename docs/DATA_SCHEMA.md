@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.1, awaiting TPM review |
+| **Status** | v0.2, approved by TPM except G16, which is being explained |
 | **Last updated** | 2026-11-21 |
 | **Database** | Cloudflare D1 (SQLite), one database per environment |
 | **Based on** | `GLOSSARY.md` rev 3 (Part B field catalogue, Part C lifecycles, Part D visibility), `ARCHITECTURE.md` v1.0 |
@@ -386,15 +386,15 @@ Note that 90 also appears in the archive SQL (§4.3); in code it comes from `SOF
 
 ---
 
-## 8. Open points for review
+## 8. Open points and decisions
 
-These continue the glossary's G-numbering.
+These continue the glossary's G-numbering. **G12 and G13 are in the backlog (B-013, B-014).** v1 ships with the interim behaviour shown, so the schema stays consistent, and it will be revisited later.
 
-| # | Point | Proposed |
+| # | Point | Decision |
 |---|---|---|
-| G12 | Removing a member: hard-delete the member row, or keep it marked `removed`? | **Keep it, marked `removed`.** Released claim history (G10) and archive records still refer to the member. Their display name is freed for reuse, and their PIN hash and tokens are cleared. |
-| G13 | A "specific members" item loses its last allowed viewer because that member was removed | The item becomes visible **only to its owner** until the owner edits it. The owner sees a note: "No one can see this item." |
-| G14 | When an item is permanently deleted, what happens to its released-claim history? | **Delete it along with the item.** The tombstone holds what the claimer needs. This keeps the "removed completely" promise in FR-7.2. |
-| G15 | Join rate limits | 10 attempts per IP address per 15 minutes; 30 attempts per group code per hour |
-| G16 | Price storage | Stored in minor units (cents) with a currency code; shown in the group's currency format |
-| G17 | `http://` (non-secure) product links | Can be saved and shown, but auto-fill never fetches them |
+| G12 | Removing a member: hard-delete the member row, or keep it marked `removed`? | **Backlog B-013. Interim v1 behaviour: keep it, marked `removed`.** Released claim history (G10) and archive records still refer to the member. Their display name is freed for reuse, and their PIN hash and tokens are cleared. |
+| G13 | A "specific members" item loses its last allowed viewer because that member was removed | **Backlog B-014. Interim v1 behaviour:** the item becomes visible **only to its owner** until the owner edits it. The owner sees a note: "No one can see this item." |
+| G14 | When an item is permanently deleted, what happens to its released-claim history? | **Accepted.** Delete it along with the item. The tombstone holds what the claimer needs. This keeps the "removed completely" promise in FR-7.2. |
+| G15 | Join rate limits | **Accepted.** 10 attempts per IP address per 15 minutes; 30 attempts per group code per hour |
+| G16 | Price storage | **Pending TPM.** Stored as a whole number of the currency's smallest unit (e.g. cents), with that price's own currency code. Shown in that currency, with no conversion. If no currency is found, the group's currency is used. |
+| G17 | `http://` (non-secure) product links | **Accepted.** Can be saved and shown, but auto-fill never fetches them |
