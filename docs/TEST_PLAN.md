@@ -79,6 +79,7 @@ npm run verify
 | ENV-07 | Health check | The Worker runs and reaches the database | ✅ |
 | ENV-08 | `/j/<code>` serves the app | Invite links open the app (FR-1.10) | ✅ |
 | ENV-09 | Unknown API path → JSON 404 | No crashes or stray pages for bad paths | ✅ |
+| ENV-10 | End-to-end browser tests (Playwright, phone and desktop) | Screens work in a real browser | ✅ |
 
 ### 2.2 Database schema (SMK, SCH, CLM): ✅ `test/schema/`
 | ID | Test | Requirement | Status |
@@ -134,14 +135,18 @@ npm run verify
 | ID-20 | A pending member has no session until they set a PIN, so they can't act as a giver. The recipient and visibility parts are tested in ITM-06 and FS-05. | FR-5.8 | ✅ |
 | ID-21 | Code lookup returns the group name and member names, with pending ones flagged; removed members and IDs aren't included | FR-1.7, FR-2.2 | ✅ |
 
-### 2.4 Group requests (REQ): 🟡
+### 2.4 Group requests (REQ): ✅ `test/api/groupRequests.test.ts`
 | ID | Test | Requirement | Status |
 |---|---|---|---|
-| REQ-01 | Submit a request (group name, currency, name, PIN) → pending, request cookie set | FR-1.2 | 🟡 |
-| REQ-02 | Status check shows "waiting" while pending | FR-1.2 | 🟡 |
-| REQ-03 | Approve → group created, requester is the first joined member, browser moved in automatically | FR-1.2 | 🟡 |
-| REQ-04 | Decline → requester sees declined; no group created | FR-1.2 | 🟡 |
-| REQ-05 | Request rate limit | NFR-3 | 🟡 |
+| REQ-01 | Submit a request (group name, currency, name, PIN) → pending, request cookie set | FR-1.2 | ✅ |
+| REQ-02 | Status check shows "waiting" while pending | FR-1.2 | ✅ |
+| REQ-03 | Approve → group created, requester is the first joined member, browser moved in automatically | FR-1.2 | ✅ |
+| REQ-04 | Decline → requester sees declined; no group created | FR-1.2 | ✅ |
+| REQ-05 | Request rate limit: more than 5 per network per hour is blocked | NFR-3 | ✅ |
+| REQ-01b | Request fields validated (group name, currency, name, PIN) | FR-1.2 | ✅ |
+| REQ-06 | No request cookie → "no request" | FR-1.2 | ✅ |
+| ID-22 | After an admin PIN reset, recovery reports that the new PIN was set | G25 | ✅ |
+| CFG-01 | Without a proper PIN secret key, the API refuses to run (fails closed) | ADR-05 | ✅ |
 
 ### 2.5 Items and links (ITM): 🟡
 | ID | Test | Requirement | Status |
@@ -242,6 +247,28 @@ One test for each cell of glossary Part D, for each viewer role.
 | AF-06 | Auto-fill failure → the item still saves and the status shows `failed` | FR-3.1b | 🟡 |
 | AF-07 | Real retailer sample: success rate by category | PR-002 | 🔒 AR-03 |
 
+### 2.12a Screens, Section 1: Getting in (UI): ✅ `test/e2e/getting-in.spec.ts`, `test/ui/copy.test.ts`
+Runs on a phone (Pixel 7) and, for tests tagged `@desktop`, also desktop Chrome, against a throwaway local database.
+
+| ID | Test | Requirement | Status |
+|---|---|---|---|
+| UI-01 | Home: a valid code opens Join with the group name (phone + desktop) | T-02 | ✅ |
+| UI-02 | Home: invalid code → error, focus kept on the box (phone + desktop) | T-02 | ✅ |
+| UI-03 | `/j/<code>` opens Join; an already-joined browser goes straight in | T-01, FR-1.10 | ✅ |
+| UI-04 | Join as a new person → inside the group with the welcome message, in under 2 minutes (phone + desktop) | T-03, SC-2 | ✅ |
+| UI-05 | Tap a pre-added name → joins as that person | T-04 | ✅ |
+| UI-06 | Name taken → error with a working "Sign back in" link | T-03, T-05 | ✅ |
+| UI-07 | PINs that don't match are caught before sending (confirmed by a deliberate break) | G24 | ✅ |
+| UI-08 | Sign back in on a second browser | T-05, SC-3 | ✅ |
+| UI-09 | Wrong-PIN message; the 5th wrong PIN shows the locked alert and disables Sign in | T-05, S-02 | ✅ |
+| UI-10 | Request a group → waiting (also after coming back) → approved → moved in | T-06, T-07 | ✅ |
+| UI-11 | Declined → message → "Send a new request" | T-08 | ✅ |
+| UI-12 | 360 px wide: no sideways scrolling on any Section 1 screen (found BUG-003) | NFR-1 | ✅ |
+| UI-13 | **Every C- wording ID in UI_INTERACTION_MAPS.md matches `copy.ts` exactly, both ways** | Doc and UI stay in sync | ✅ |
+| UI-14 | Keyboard only: Tab and Enter complete the join; errors are announced | Accessibility | ✅ |
+
+**Review screenshots:** `npm run screens` regenerates `docs/screens/section-1/*.png` (18 screens and states, light and dark).
+
 ### 2.13 End-to-end in a browser (E2E): 🟡 Playwright, phone and desktop sizes
 | ID | Journey | Status |
 |---|---|---|
@@ -332,13 +359,15 @@ Every requirement must map to at least one test before v1 ships.
 
 | Area | Total | ✅ Passing | 🟡 Planned | 🔒 Blocked |
 |---|---|---|---|---|
-| ENV | 9 | 9 | 0 | 0 |
+| ENV | 10 | 10 | 0 | 0 |
 | Schema (SMK/SCH/CLM-01–05) | 23 | 23 | 0 | 0 |
-| ID (identity) | 23 | 23 | 0 | 0 |
-| REQ / ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 63 | 0 | 63 | 0 |
+| ID (identity) + CFG | 25 | 25 | 0 | 0 |
+| REQ (group requests) | 7 | 7 | 0 | 0 |
+| UI, Section 1 | 14 | 14 | 0 | 0 |
+| ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 58 | 0 | 58 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **140** | **55** | **77** | **8** |
+| **Total automated** | **159** | **79** | **72** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

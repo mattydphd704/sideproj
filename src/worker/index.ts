@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { ApiError, errorResponse } from "./lib/errors";
 import { csrf } from "./middleware/csrf";
 import { identity } from "./routes/identity";
+import { groupRequests } from "./routes/groupRequests";
 
 export type { Env };
 
@@ -11,6 +12,16 @@ export function createApp() {
 
   app.use("/api/*", csrf);
 
+  // Fail closed: without the PIN pepper, PINs and rate-limit keys can't be protected (ADR-05).
+  app.use("/api/*", async (c, next) => {
+    if (c.req.path === "/api/health") return next();
+    if (!c.env.PIN_PEPPER || c.env.PIN_PEPPER.length < 16) {
+      console.error(JSON.stringify({ level: "error", msg: "PIN_PEPPER missing or too short" }));
+      return c.json({ error: "server_misconfigured", message: "Something went wrong. Please try again." }, 500);
+    }
+    return next();
+  });
+
   // Health check: confirms the Worker is running and the database is reachable.
   app.get("/api/health", async (c) => {
     const row = await c.env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
@@ -18,6 +29,7 @@ export function createApp() {
   });
 
   app.route("/", identity);
+  app.route("/", groupRequests);
 
   app.notFound((c) => c.json({ error: "not_found", message: "Not found." }, 404));
 

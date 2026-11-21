@@ -9,6 +9,14 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - G18 decided: build the APIs and the UI together, screen by screen.
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
+
+### Added: Section 1 screens built (2026-11-21)
+- AR-08 approved and installed (shadcn/ui: Tailwind 4, Radix UI, lucide icons, sonner, input-otp and helpers): 0 vulnerabilities, no install scripts.
+- API: `POST /api/group-requests` and `GET /api/group-requests/current` (request, wait, approve or decline, with automatic move-in); recovery reports `pinWasReset` (G25); lookup returns the group ID; the API fails closed without a proper PIN secret key.
+- UI: shadcn theme (light and dark follow the device) and components, a wording file (`src/web/copy.ts`) keyed by C- IDs, and screens for Home, Join (with pre-added names), Sign back in (with lockout), Start a group, Waiting and Declined, plus a temporary "inside a group" screen.
+- Tests: REQ-01 to REQ-06, ID-22, CFG-01, and UI-01 to UI-14 in a real browser on phone and desktop. UI-13 keeps the doc wording and the code wording identical. `npm run verify` now includes the browser tests (ENV-10).
+- `npm run screens` captures 18 review screenshots in `docs/screens/section-1/`.
+- Fixed BUG-003: long group names made the Join button overflow at 360 px. Found by UI-12.
 - `docs/UI_TASK_MAP.md` v0.1: 50 user tasks and system events (T-01 to T-59, S-01 to S-07), an end-to-end workflow map, an admin workflow map, the lifecycle of one gift across people, the screen map, 18 wording decisions (L1 to L18) and open points G18 to G23.
 
 ### Process (2026-11-21)

@@ -1,6 +1,6 @@
 import { createApp, type Env } from "../../src/worker/index";
 
-export const TEST_PEPPER = "test-pepper";
+export const TEST_PEPPER = "test-pepper-0123456789";
 
 export function makeEnv(db: D1Database, over: Partial<Env> = {}): Env {
   return {

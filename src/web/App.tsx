@@ -1,0 +1,50 @@
+import * as React from "react";
+import { Toaster } from "./components/ui/sonner";
+import { Card, CardContent } from "./components/ui/card";
+import { Shell } from "./components/common";
+import { api } from "./lib/api";
+import { lastGroup, navigate, parse, usePath } from "./lib/router";
+import { Home } from "./screens/Home";
+import { Join } from "./screens/Join";
+import { NewGroup } from "./screens/NewGroup";
+import { GroupPlaceholder } from "./screens/GroupPlaceholder";
+
+export function App() {
+  const path = usePath();
+  const route = parse(path);
+  return (
+    <>
+      {route.name === "home" && <HomeGate />}
+      {route.name === "join" && <Join key={route.code} code={route.code} initialMode={route.mode} />}
+      {route.name === "new" && <NewGroup />}
+      {route.name === "group" && <GroupPlaceholder key={route.groupId} groupId={route.groupId} />}
+      <Toaster />
+    </>
+  );
+}
+
+/**
+ * "/" opens the last group used if this browser is in one (UI_INTERACTION_MAPS §1.0),
+ * or the waiting screen if a group request is open. "/?add=1" always shows Home.
+ */
+function HomeGate() {
+  const forceHome = new URLSearchParams(location.search).has("add");
+  const [ready, setReady] = React.useState(forceHome);
+  React.useEffect(() => {
+    if (forceHome) return;
+    (async () => {
+      const me = await api.me().catch(() => ({ groups: [] as { id: string }[] }));
+      if (me.groups.length) {
+        const last = lastGroup.get();
+        navigate(`/g/${me.groups.some((g) => g.id === last) ? last : me.groups[0]!.id}`, true);
+        return;
+      }
+      const req = await api.currentRequest().catch(() => null);
+      if (req && req.status !== "approved") { navigate("/new", true); return; }
+      if (req?.status === "approved") { navigate("/new", true); return; }
+      setReady(true);
+    })();
+  }, [forceHome]);
+  if (!ready) return <Shell><Card aria-busy="true"><CardContent><div className="bg-muted h-24 animate-pulse rounded-md" /></CardContent></Card></Shell>;
+  return <Home />;
+}

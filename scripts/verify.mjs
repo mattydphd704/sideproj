@@ -98,6 +98,31 @@ const tests = [];
   }
 }
 
+// ENV-10: end-to-end browser tests (Playwright, phone + desktop), one row per test.
+{
+  const jsonFile = join(mkdtempSync(join(tmpdir(), "giftlist-pw-")), "r.json");
+  const r = run("npx", ["playwright", "test", "--project=phone", "--project=desktop", "--reporter=json"], {
+    env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: jsonFile },
+  });
+  let count = 0, passed = 0;
+  if (existsSync(jsonFile)) {
+    const walk = (suite) => {
+      for (const spec of suite.specs ?? []) {
+        for (const t of spec.tests) {
+          const m = spec.title.match(/^\[([A-Z]+-\d+[a-z]?)\]\s*(.*?)(\s*@desktop)?$/);
+          const ok = t.results.length > 0 && t.results.every((x) => x.status === "passed");
+          tests.push({ id: m?.[1] ?? "—", name: m?.[2] ?? spec.title, suite: `browser (${t.projectName})`, file: spec.file, ok,
+            ms: Math.round(t.results.reduce((a, x) => a + (x.duration ?? 0), 0)) });
+          count++; if (ok) passed++;
+        }
+      }
+      for (const child of suite.suites ?? []) walk(child);
+    };
+    for (const sname of JSON.parse(readFileSync(jsonFile, "utf8")).suites ?? []) walk(sname);
+  }
+  record("ENV-10", "End-to-end browser tests (Playwright)", r.ok && count > 0, `${passed}/${count} browser tests passed`);
+}
+
 // ---- write the report ----
 const git = (a) => run("git", a).out.trim();
 const commit = git(["rev-parse", "--short", "HEAD"]);

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Section 1 (Getting in) is DRAFT v0.1, awaiting TPM review. Other sections follow. |
+| **Status** | Section 1 (Getting in) v0.2: **built** (2026-11-21) and awaiting TPM feedback. Screenshots are in `docs/screens/section-1/`. Feedback updates this document and the UI together; test UI-13 fails if the two disagree. Other sections follow. |
 | **Last updated** | 2026-11-21 |
 | **Branch** | `claude/sharp-knuth-889h6a-ui-workflow` |
 | **Design language** | shadcn/ui (ADR-15) |
@@ -172,8 +172,8 @@ flowchart TD
 |---|---|---|
 | C-JOIN-01 | Back link | Back |
 | C-JOIN-02 | Title | Join {groupName} |
-| C-JOIN-03 | Who's here (1–3 names) | Already here: {name1}, {name2} and {name3} |
-| C-JOIN-04 | Who's here (more than 3) | Already here: {name1}, {name2}, {name3} and {n} more |
+| C-JOIN-03 | Who's here (1–3 names; {names} reads like "Sam, Alex and Jo") | Already here: {names} |
+| C-JOIN-04 | Who's here (more than 3; {names} is the first three) | Already here: {names} and {n} more |
 | C-JOIN-05 | Who's here (nobody yet) | You're the first one here. |
 | C-JOIN-06 | Pre-added names heading | Is one of these you? |
 | C-JOIN-07 | Pre-added names helper | The group organiser added these names. Tap yours to use it. |
@@ -366,7 +366,7 @@ flowchart TD
 | C-NEW-10 | Waiting title | Waiting for approval |
 | C-NEW-11 | Waiting body | We'll move you into "{groupName}" as soon as it's approved. |
 | C-NEW-12 | Waiting note | You can close this page. Come back on this same phone or computer to get in. |
-| C-NEW-13 | Last checked | Last checked: {relativeTime} |
+| C-NEW-13 | Last checked ({time} reads like "just now" or "5 minutes ago") | Last checked: {time} |
 | C-NEW-14 | Button | Check now |
 | C-NEW-15 | Declined title | Your request wasn't approved |
 | C-NEW-16 | Declined body | Your request for "{groupName}" wasn't approved. If you think this is a mistake, contact the app's organiser. |
@@ -416,7 +416,19 @@ PIN, name and PIN-explanation wording is reused from the Join screen (**C-JOIN-0
 | G27 | Currency default when requesting a group | Guess from the device's region, e.g. en-US → USD, en-GB → GBP. The person can change it. Show the 10 most common currencies first. |
 | G28 | Show the 5-try lockout rule in the wrong-PIN message? | **Yes** (see C-ERR-CREDENTIALS). |
 
+**Build note (2026-11-21):** the TPM said "go ahead and build", so G24–G28 and L14–L17 are built with the recommended values above. Any of them can be changed through feedback.
+
 ---
+
+## 1.6a Temporary screen: inside a group (until Section 2)
+
+After joining, people land on a simple placeholder until "My list" (Section 2) is mapped and built. It shows the group name, who you're signed in as, and a way to join another group (G20).
+
+| ID | Element | Text |
+|---|---|---|
+| C-TMP-GROUP-01 | Under the group name | Signed in as {name} |
+| C-TMP-GROUP-02 | Body | Your list, everyone's lists and your claims will appear here. These screens come in the next sections of the interaction maps. |
+| C-TMP-GROUP-03 | Button | Join another group |
 
 ## 1.7 Tests for this section
 

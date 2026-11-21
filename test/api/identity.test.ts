@@ -127,7 +127,7 @@ describe("joining", () => {
     const r = await client().post("/api/groups/lookup", { code: g.group_code });
     expect(r.status).toBe(200);
     expect(r.json).toEqual({
-      group: { name: "Lookup Family" },
+      group: { id: g.id, name: "Lookup Family" },
       members: [{ displayName: "Grandma", pending: true }, { displayName: "Sam", pending: false }],
     });
     expect(Object.keys(r.json.members[0]).sort()).toEqual(["displayName", "pending"]);

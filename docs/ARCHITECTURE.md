@@ -216,7 +216,7 @@ Every endpoint returns JSON. "M" means a member token is required for the group,
 |---|---|---|---|
 | `GET /j/:code` | — | Serves the app. The app opens the join screen with the code filled in (no API call until the user submits). | 1.10 |
 | `POST /api/join` | — | Join with a group code, display name and PIN, or claim a pending name | 1.3–1.4 |
-| `POST /api/groups/lookup` | — | Group code → group name and member names (pending flagged), for the join and recovery screens. Rate-limited. | 1.7, 2.2 |
+| `POST /api/groups/lookup` | — | Group code → group ID and name, and member names (pending flagged), for the join and recovery screens. The ID lets the Join screen spot a browser that's already a member. Rate-limited. | 1.7, 2.2 |
 | `POST /api/recover` | — | Group code, display name and PIN → new token | 1.7 |
 | `GET /api/me` | cookies | List my groups (for the group switcher) | 1.9 |
 | `POST /api/group-requests` / `GET /api/group-requests/current` | — / request cookie | Submit a group request / check its status | 1.2 |

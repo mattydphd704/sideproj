@@ -45,7 +45,7 @@ identity.post("/api/groups/lookup", async (c) => {
     "SELECT display_name, status FROM members WHERE group_id = ? AND status IN ('pending','joined') ORDER BY display_name_norm",
   ).bind(group.id).all<{ display_name: string; status: string }>();
   return c.json({
-    group: { name: group.name },
+    group: { id: group.id, name: group.name },
     members: results.map((m) => ({ displayName: m.display_name, pending: m.status === "pending" })),
   });
 });
@@ -96,9 +96,11 @@ identity.post("/api/recover", async (c) => {
   if (!m || m.status !== "joined") throw await fail(Errors.invalidCredentials());
   if (m.locked_until && m.locked_until > now) throw Errors.locked(Math.ceil((m.locked_until - now) / 1000));
 
+  let pinWasReset = false;
   if (m.pin_hash === null) {
-    // The admin reset this PIN (G5): the PIN entered now becomes the new one.
+    // The admin reset this PIN (G5): the PIN entered now becomes the new one (G25: tell the person).
     if (!(await members.setPinAfterReset(DB, PIN_PEPPER, m.id, pin))) throw Errors.invalidCredentials();
+    pinWasReset = true;
   } else if (!(await members.pinMatches(PIN_PEPPER, m, pin))) {
     const lockMs = num(c.env.PIN_LOCKOUT_MINUTES, 15) * 60_000;
     const lockedUntil = await members.recordPinFailure(DB, m, num(c.env.PIN_MAX_ATTEMPTS, 5), lockMs, now);
@@ -108,7 +110,7 @@ identity.post("/api/recover", async (c) => {
   }
   await members.clearPinFailures(DB, m.id, now);
   await issueMemberToken(c, DB, m.id, group.id, now);
-  return c.json({ group: { id: group.id, name: group.name }, member: { id: m.id, displayName: m.display_name } });
+  return c.json({ group: { id: group.id, name: group.name }, member: { id: m.id, displayName: m.display_name }, pinWasReset });
 });
 
 /** Every group this browser belongs to, for the group switcher (FR-1.9). */
