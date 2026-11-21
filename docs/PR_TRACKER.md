@@ -12,6 +12,7 @@ Candidate features that are built and tested as their own scenario, with a test 
 |---|---|---|---|---|---|
 | PR-001 | Partial claims on items with a quantity | proposed | Brief Q9 | — | — |
 | PR-002 | Auto-fill product details from links | proposed | Brief Q8 | — | — |
+| PR-003 | Fair-share alert tuning | proposed | Brief FR-6 | — | Ships in v1 with initial logic; tune in test |
 
 ---
 
@@ -47,3 +48,22 @@ Candidate features that are built and tested as their own scenario, with a test 
 4. Security: guard against server-side request forgery (SSRF), for example by blocking internal IP addresses, and enforce limits on response size and time.
 
 **Output:** Updated "Item fields" table in `GLOSSARY.md`.
+
+---
+
+## PR-003: Fair-share alert tuning
+
+**Idea.** FR-6 ships in v1 with initial logic. We test it in the test environment and tune the threshold and the wording of the alert.
+
+**Baseline v1 behaviour:** A warning appears on every claim that breaches fair share. The threshold is: available items < waiting givers × buffer (1.0), or any waiting giver has no available item they're allowed to see.
+
+**Scenarios to test:**
+1. Small group (3 members), short list (2 items).
+2. Large group (15 members), long list (40 items).
+3. Mixed visibility: one waiting giver can only see 1 item, and it's claimed.
+4. A new member joins after claims were made. The nudge appears for existing over-claimers.
+5. The owner deletes items, which pushes a claimer over the threshold.
+6. Rapid repeated claims: the warning appears every time.
+7. Different buffer values (0.5, 1.0, 1.5).
+
+**Output:** The tuned threshold rule and default settings, written back into brief FR-6.

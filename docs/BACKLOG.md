@@ -17,4 +17,5 @@ Ideas and features deliberately deferred past v1. Moving an item into scope requ
 | B-007 | Native mobile apps. | Brief §6 | |
 | B-009 | **Retention and cleanup.** How long claimed items, tombstones and archived items are kept. | TPM, brief v0.7 | Deferred on purpose. |
 | B-010 | **Group and PIN lifecycle.** In v1, groups and PINs persist indefinitely. Revisit expiry, PIN rotation and inactive groups. | TPM, brief v0.7 | TPM flagged that this will need changing. |
+| B-011 | **Auto-archive** a group's lists after 12 months. The clock basis is still to be decided. | Brief Q31 | Not in v1. Will be applied retroactively to existing groups, so the v1 archive batches must keep their dates. |
 | B-008 | **Group ideas.** Members suggest gifts for someone that aren't on that person's list. Hidden from the recipient, and claimable. | Brief Q15 | |

@@ -4,7 +4,7 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 
 | | |
 |---|---|
-| **Last updated** | 2026-11-21 (brief v0.7) |
+| **Last updated** | 2026-11-21 (brief v0.8) |
 
 ## Roles and access
 
@@ -12,7 +12,8 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 |---|---|
 | **Admin** | The single global operator (TPM) in v1. Per-group admins are in the backlog (B-001). The only person who creates groups in v1. Can add and delete members in any group and approve or decline group requests. Can also be a member. Signs in to a separate admin area with an admin credential. |
 | **Member** | A person in a group, identified by a display name. A member has one list per group. |
-| **Pending member** | A member the admin added by name who hasn't opened the app yet, so has no PIN set. The first person to open the group with that name sets the PIN. |
+| **Pending member** | A member the admin added by name who hasn't opened the app yet, so has no PIN set. The first person to open the group with that name sets the PIN. Until then, they have no list and can't be a recipient, a giver or a visibility target. |
+| **Joined member** | A member who has visited and set a PIN. Only joined members take part in lists, claims and fair share. |
 | **Visitor** | Someone using the app who isn't a member of any group. |
 | **Display name** | A member's name as shown to the group. Must be unique within a group. |
 | **PIN** | A 4 to 6 digit code a member creates when joining. It's used only to recover their identity on a new device or after clearing browser data. Stored as a salted hash. |
@@ -50,7 +51,9 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 | **Permanent delete** | Removing an item for good, either by the owner or automatically after 90 days in Deleted. Can't be undone. |
 | **Tombstone** | What's left on a claimer's Claimed list after a claimed item is permanently deleted: the title and recipient, marked "No longer on <name>'s list". The claimer can dismiss it. |
 | **Archive / Archived** | Moving every current item in a group's lists into a read-only, unclaimable "Archived" section. Done by the admin, or automatically. Lists stay in place for new items. |
-| **Auto-archive** | Archiving that happens automatically 12 months after a group's last archive, or after its creation if it has never been archived. |
+| **Archive batch** | The record of one archive: its date, who ran it, and each item's state beforehand. Used to restore the archive. |
+| **Restore archive** | An admin action that returns every item in an archive batch, and its claims, to the state it was in before archiving. |
+| **Auto-archive** | *(Backlog B-011, not in v1.)* Archiving that happens automatically after 12 months. |
 | **Re-add** | Creating a fresh, unclaimed copy of an archived item on the owner's active list. |
 | **Dashboard** | The main view: every other member's visible items, grouped by member. |
 
@@ -71,8 +74,8 @@ The project's shared vocabulary. Every term used in the brief, architecture, sch
 | **Waiting giver** | For a recipient, a joined member of the group (not the recipient and not the claimer) who hasn't claimed anything for that recipient yet. |
 | **Available item** | An item that is unclaimed, not deleted and not archived. |
 | **Fair-share threshold** | A floating limit that's breached when the available items number fewer than waiting givers × buffer, or when any waiting giver has no available item they're allowed to see. |
-| **Fair-share buffer** | The multiplier in the threshold. Defaults to 1.0, and the admin can change it. |
-| **Fair-share alert** | The warning shown before a claim that breaches the threshold, with "Claim anyway" or "Cancel". |
+| **Fair-share buffer** | The multiplier in the threshold. Defaults to 1.0, and the admin can change it. The fair-share logic is initial and will be tuned in test (PR-003). |
+| **Fair-share alert** | The warning shown before **every** claim that breaches the threshold, with "Claim anyway" or "Cancel". |
 | **Fair-share nudge** | The banner on a claimer's Claimed list while they're over the threshold for a recipient, suggesting they unclaim some items. |
 
 ## Item fields (working list, to be refined by the auto-fill test spike)
