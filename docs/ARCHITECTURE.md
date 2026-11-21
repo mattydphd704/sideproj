@@ -70,7 +70,7 @@ At v1 scale (fewer than 100 groups), the $5 plan's included usage covers prod wi
 | Database | **D1** (SQLite) | Relational data, unique indexes for safe claiming, and atomic `batch()` writes. Free tier is generous. |
 | Database access | Hand-written SQL, through a small typed query layer | Keeps queries visible and reviewable. Avoids a heavy ORM. |
 | Database migrations | `wrangler d1 migrations` | Versioned SQL files checked into the repo, applied the same way to dev and prod. |
-| Unit and API tests | **Vitest** + `@cloudflare/vitest-pool-workers` | Runs the real Workers runtime and a local D1 **inside this container, with no Cloudflare account needed**. |
+| Unit and API tests | **Vitest** with a real local D1 database from wrangler's local runtime (`getPlatformProxy`) | Runs **inside this container, with no Cloudflare account needed**. The Workers test pool was dropped because of a security audit (ADR-13). The Worker itself is checked with `vite dev` and, later, Playwright end-to-end tests. |
 | End-to-end tests | **Playwright** (already installed here) | Covers whole user journeys, including the surprise rule and visibility. |
 | Local runtime | `wrangler dev` (Miniflare) | The full app runs locally, offline. |
 | Admin sign-in | **Cloudflare Access** (recommended, AD-04) | You sign in with your email. We don't store an admin password. |
@@ -234,14 +234,15 @@ Every endpoint returns JSON. "M" means a member token is required for the group,
 
 ## 8. Repository layout (proposed)
 
+Simplified to **one package** during setup (2026-11-21). The Cloudflare Vite plugin builds the web app and the Worker together, so separate workspaces weren't needed.
 ```
-/docs                      brief, glossary, architecture, schema, trackers, ADRs
-/apps/web                  React + Vite single-page app
-/apps/api                  Worker: Hono routes, services, views, scheduled job
-/apps/api/migrations       D1 SQL migrations (0001_init.sql …)
-/packages/shared           Shared TypeScript types and validation rules (G1–G11 limits)
-/tests/e2e                 Playwright scenarios (incl. PR-001/002/003 suites)
-wrangler.toml              environments: local, dev, prod
+/docs                 brief, glossary, architecture, schema, trackers, ADRs
+/src/worker           Worker: Hono routes, services, views, scheduled job
+/src/web              React single-page app
+/src/shared           Shared types and limits (G1–G17)
+/migrations           D1 SQL migrations (0001_init.sql …)
+/test                 Vitest: schema, API and view tests; /test/e2e for Playwright later
+wrangler.jsonc        Worker config (local now; dev and prod environments added at AR-01)
 ```
 
 ---
@@ -292,7 +293,7 @@ None of these have been granted. **I won't use any of them until you approve eac
 | ID | What | Why | When needed | Scope / risk |
 |---|---|---|---|---|
 | AR-01 | **Status: partly granted.** The TPM connected the Cloudflare connector (2026-11-21). It has been used only for read-only checks so far. Any create, change or deploy action still needs a go-ahead at the first dev deploy. **Original request:** a **Cloudflare account**, plus an **API token** limited to Workers Scripts (edit), D1 (edit) and Account Settings (read) for **dev** only | To deploy `giftlist-dev` and run D1 migrations | When we first deploy to dev, after local development is done | Owned by you. Token limited to dev resources if possible. **Not needed for local development or tests.** |
-| AR-02 | **npm registry** in this container | To install packages: hono, react, vite, wrangler, vitest and `@cloudflare/vitest-pool-workers` | Start of coding | Public packages only. Usually allowed by default. |
+| AR-02 | **Status: granted 2026-11-21, under ADR-13's dependency policy.** **npm registry** in this container | To install packages: hono, react, vite, wrangler, vitest and `@cloudflare/vitest-pool-workers` | Start of coding | Public packages only. Usually allowed by default. |
 | AR-03 | **Outbound HTTPS to retailer sites from this container** | To run the PR-002 auto-fill experiment with real product links | The PR-002 experiment | Read-only fetches to a list of retailer hosts that you approve. |
 | AR-04 | **Cloudflare Access (Zero Trust)** enabled on the account, with your email as the only allowed admin | Admin sign-in (AD-04) | Before admin features are tested in dev | Free plan. You do the setup in the dashboard, and I'll give you the steps. |
 | AR-05 | *(Optional)* custom domain on Cloudflare | Nicer URL than `*.workers.dev` | Before prod | Costs about $10–$15 a year. |

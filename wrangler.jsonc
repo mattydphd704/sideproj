@@ -1,0 +1,32 @@
+// Cloudflare Worker configuration. See docs/ARCHITECTURE.md §4 (environments).
+// Local development and tests need no Cloudflare account.
+// Dev and prod deploys are gated by access requests AR-01 and AR-07.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "giftlist-local",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "send_metrics": false,
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "giftlist-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APP_ENV": "local",
+    "SOFT_DELETE_DAYS": "90",
+    "PIN_MAX_ATTEMPTS": "5",
+    "PIN_LOCKOUT_MINUTES": "15",
+    "DASHBOARD_REFRESH_SECONDS": "30",
+    "FAIR_SHARE_BUFFER_DEFAULT": "1.0"
+  },
+  "triggers": { "crons": ["17 3 * * *"] }
+}

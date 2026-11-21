@@ -12,7 +12,8 @@
 
 | ID | Title | Severity | Status | Env | Found | Fixed in | Notes |
 |---|---|---|---|---|---|---|---|
-| — | No bugs yet. Code hasn't started. | | | | | | |
+| BUG-001 | 6 high-severity npm audit advisories in `@cloudflare/vitest-pool-workers` dependencies | S2 | verified | local | 2026-11-21, engineer | Setup commit | Package removed (ADR-13). `npm audit` reports 0 vulnerabilities. Dev tool only, never shipped. |
+| BUG-002 | npm 10.9 crashes (`edgesOut`) resolving vitest's optional peers | S3 | verified | local | 2026-11-21, engineer | Setup commit | Workaround: `legacy-peer-deps=true`, with peers listed explicitly (ADR-13). Revisit on an npm upgrade. |
 
 ---
 

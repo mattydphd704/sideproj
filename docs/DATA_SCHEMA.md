@@ -22,7 +22,7 @@ This document is the design. The SQL below becomes the first migration file (`ap
 | **Money** | `price_minor INTEGER` (cents) plus `currency TEXT` (ISO 4217). No floating point. |
 | **Text limits** | Enforced in **both** the API validation (shared package) and `CHECK (length(x) <= n)`. The limits are G1–G11. |
 | **Secrets** | Only hashes are stored: `pin_hash`, `token_hash`. Raw PINs and tokens never touch the database or logs. |
-| **Foreign keys** | Declared on every reference. D1 enforces them **[verify at setup]**. |
+| **Foreign keys** | Declared on every reference. **Verified 2026-11-21:** local D1 enforces them (`test/schema/constraints.test.ts`). Recheck on the first dev deploy. |
 | **Naming** | `snake_case`, plural table names. |
 
 ---
