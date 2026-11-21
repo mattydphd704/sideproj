@@ -56,7 +56,7 @@ shadcn/ui is a set of open-source React components (buttons, cards, dialogs, for
 | **Requester** | A visitor who asked for a new group | Submitted "Start a new group" and is waiting for approval |
 | **Member, as owner** | A person managing their own wish list | Inside a group, on "My list" |
 | **Member, as giver** | The same person shopping for others | Inside a group, on "Everyone" and "My claims" |
-| **Admin** | The TPM | Admin area, behind Cloudflare Access |
+| **Admin** | The TPM | Admin protocol from the Claude session (ADR-17); no admin screens for now |
 | **System** | Things the app does on its own | Auto-refresh, lockouts, the nightly cleanup |
 
 ---
@@ -115,6 +115,8 @@ Every task a person can do in v1. **IDs (T-xx) are used in the workflow map and 
 | T-40 | Act on a fair-share nudge | FR-6.5 | Rare | Banner on "My claims" | Some claims released, or nudge dismissed for now |
 
 ### 3.5 Admin
+> **Update 2026-11-21 (ADR-17, G34):** no admin screens for now. Each admin task is done through the **admin protocol** (`ADMIN_PROTOCOL.md`): T-50 is replaced by the admin key; T-51 to T-55 and T-58 are protocol operations (`request.approve` / `request.decline`, `group.create`, `member.add`, `member.remove`, `member.resetPin`, `group.setFairShare`); T-56 and T-57 come as protocol 1.1 once items exist; T-59 isn't needed without an admin area. The tasks below stay as the design for admin screens later (backlog B-017).
+
 | ID | Task | Requirement | How often | Starts from | Done when |
 |---|---|---|---|---|---|
 | T-50 | Sign in to the admin area | ADR-04 | Occasional | `/admin` | Cloudflare Access sign-in, then admin home |

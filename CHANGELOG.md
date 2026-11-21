@@ -4,6 +4,17 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added: admin protocol, branch `claude/beautiful-brown-z7s8tq` (2026-11-21)
+- **No admin screens for now (TPM, G34).** Admin work goes through the **admin protocol `giftlist-admin/1`** (`docs/ADMIN_PROTOCOL.md`): read the request queue, groups and people; change things only through **plan → review → apply**, all or nothing, once only, refused if anything changed since the plan.
+- **ADR-17** (supersedes ADR-04 for now): admin endpoints `/api/admin/*` protected by an **admin key** (`X-Admin-Key`, Worker secret `ADMIN_KEY`, fail closed, wrong keys rate-limited). On dev the key is added by the session's proxy, so the engineer never sees it (AR-09). Cloudflare Access and admin screens move to backlog B-017 (AR-04 deferred).
+- Operations: `request.approve`, `request.decline`, `group.create`, `member.add`, `member.remove` (full clean-up per schema §4.5), `member.resetPin` (also lifts a lock), `group.setFairShare` (0.5–3, G36). Archive and restore follow as protocol 1.1 once items exist.
+- Migration **0003**: `admin_changes` audit log (no codes, PINs, hints or keys).
+- `npm run admin` command line (`scripts/admin.mjs`). `scripts/dev-requests.mjs` retired.
+- Tests ADM-01 to ADM-17 (16 built and passing; ADM-08 waits for items). Key check and apply guard checked against deliberate breaks. SMK-01 now expects 13 tables.
+- Docs: brief v1.3 (roles, FR-2, NFR-7), glossary rev 5 (admin key, admin protocol, change set, plan, apply, audit log; B11, C6; G34–G37), architecture v1.1 (§6.8, §7, AD-17, AR-04 deferred, AR-09), schema §3.13, UI task map §3.5 note, test plan §2.10, backlog B-017, dev environment (admin key steps), branch register.
+- BUG-007 fixed: `npm run verify` now creates the gitignored `.dev.vars` from `.dev.vars.example` on a fresh checkout (ENV-09 had failed with a 500).
+- Handbook brought up to date, including the fixes from its review: how to resume on a new session's branch, the branch register, the order of the review-round sections, the blocked dev checks.
+
 ### Added: UI and workflow, branch `claude/sharp-knuth-889h6a-ui-workflow` (2026-11-21)
 - ADR-15: shadcn/ui is the design language.
 - G18 decided: build the APIs and the UI together, screen by screen.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.0, approved by TPM |
+| **Status** | v1.0, approved by TPM; migrations 0002 (PIN hint) and 0003 (admin audit log, ADR-17) since |
 | **Last updated** | 2026-11-21 |
 | **Database** | Cloudflare D1 (SQLite), one database per environment |
 | **Based on** | `GLOSSARY.md` rev 3 (Part B field catalogue, Part C lifecycles, Part D visibility), `ARCHITECTURE.md` v1.0 |
@@ -38,7 +38,8 @@ This document is the design. The SQL below becomes the first migration file (`ap
    │             └──< archive_batches ──< archive_batch_items >── items
    └── (created from) group_requests
 
- rate_limits   (standalone: join, recovery and request throttling)
+ rate_limits     (standalone: join, recovery and request throttling)
+ admin_changes   (standalone: admin protocol audit log, ADR-17)
 ```
 
 `──<` means "one to many".
@@ -56,7 +57,8 @@ This document is the design. The SQL below becomes the first migration file (`ap
 | `tombstones` | B8 | What a claimer keeps after a claimed item is permanently deleted |
 | `archive_batches` | B9 | One record per archive action |
 | `archive_batch_items` | B9 | Each item's state before archiving, used by Restore archive |
-| `rate_limits` | NFR-3, NFR-4 | Attempt counters by IP address and by group code |
+| `rate_limits` | NFR-3, NFR-4 | Attempt counters by IP address and by group code (also wrong admin keys, ADR-17) |
+| `admin_changes` | B11 | Admin protocol audit log: one row per change set, planned and applied (migration 0003) |
 
 ---
 
@@ -256,7 +258,7 @@ CREATE TABLE archive_batches (
   id            TEXT PRIMARY KEY,
   group_id      TEXT NOT NULL REFERENCES groups(id),
   archived_at   INTEGER NOT NULL,
-  archived_by   TEXT NOT NULL,          -- Cloudflare Access user ID ('sub'), not an email address
+  archived_by   TEXT NOT NULL,          -- 'admin-key' while admin work uses the admin protocol (ADR-17); never an email address
   restored_at   INTEGER,
   restored_by   TEXT
 );
@@ -283,11 +285,34 @@ IP addresses and codes are stored **hashed**, using the pepper. Rows older than 
 
 ---
 
+### 3.13 `admin_changes` *(migration 0003, ADR-17)*
+```sql
+CREATE TABLE admin_changes (
+  id             TEXT PRIMARY KEY CHECK (length(id) BETWEEN 1 AND 64),  -- the change set's changeId
+  note           TEXT CHECK (note IS NULL OR length(note) <= 200),
+  ops_json       TEXT NOT NULL,       -- operations as planned (groups by ID, never by code)
+  plan_id        TEXT NOT NULL,       -- new random ID each time it's planned
+  plan_json      TEXT NOT NULL,       -- step summaries, as reviewed
+  basis_json     TEXT NOT NULL,       -- group versions and request statuses the plan was based on
+  status         TEXT NOT NULL CHECK (status IN ('planned','applied')),
+  actor          TEXT NOT NULL,       -- 'admin-key' in v1
+  planned_at     INTEGER NOT NULL,
+  applied_at     INTEGER,
+  result_json    TEXT,                -- step summaries and new group IDs; codes are looked up live, never stored
+  CHECK (status <> 'applied' OR (applied_at IS NOT NULL AND result_json IS NOT NULL))
+);
+CREATE INDEX idx_admin_changes_planned ON admin_changes(planned_at);
+```
+- `status` is `NOT NULL` on purpose: apply's guard statement writes `NULL` when the state no longer matches the plan, which fails the whole `batch()` and rolls it back (ADMIN_PROTOCOL.md §6).
+- The `id` is the admin's `changeId`, not a random ID, so applying the same change set twice finds the first result.
+- Never stores group codes, PINs, hints or the admin key (test ADM-14).
+
 ## 3.12 Migration history
 | Migration | Change | Why |
 |---|---|---|
 | `0001_init.sql` | All 12 tables | Schema v1.0 |
 | `0002_pin_hint.sql` | Adds `members.pin_hint` and `group_requests.requester_pin_hint` | TPM UI review round 1: optional PIN hint (G29). PINs are now exactly 4 digits, enforced by the API, since only hashes are stored. |
+| `0003_admin_changes.sql` | Adds `admin_changes` | Admin protocol audit log (ADR-17) |
 
 ## 4. Key queries
 
@@ -345,7 +370,7 @@ For items where `status='deleted' AND deleted_at < :now - 90 days`, in batches o
 Running it again does nothing, because purged items no longer match.
 
 ### 4.5 Remove a member (FR-2.3)
-One `batch()`:
+Done by the admin protocol's `member.remove` operation (ADR-17), as part of the change set's single `batch()`:
 1. Set the member to `removed`, with `removed_at`.
 2. Revoke all their tokens.
 3. Release their live claims with `release_reason='claimer_removed'`.
@@ -369,7 +394,8 @@ One `batch()`:
 | Member: → removed | §4.5 |
 | Claim: active ⇄ frozen | Archive / restore (§4.3) |
 | Claim: → released | Unclaim, member removal or purge |
-| Request: pending → approved | One `batch()`: create the group and the requester as a joined member, using the request's PIN hash; set the request to `approved` and record its `group_id` |
+| Request: pending → approved | One `batch()` (admin protocol `request.approve`): create the group and the requester as a joined member, using the request's PIN hash; set the request to `approved` and record its `group_id` |
+| Admin change: planned → applied | Apply's guard statement, in the same `batch()` as the change set's statements (§3.13) |
 
 ---
 

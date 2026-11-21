@@ -78,6 +78,9 @@ const tests = [];
 // ENV-07..09: start the app locally and call it like a browser would.
 {
   const port = 5199;
+  // The local server needs .dev.vars (gitignored). A fresh checkout doesn't have it, so create it
+  // from the example, which holds only local placeholders (BUG-007).
+  if (!existsSync(".dev.vars")) writeFileSync(".dev.vars", readFileSync(".dev.vars.example", "utf8"));
   const dev = spawn("npx", ["vite", "dev", "--port", String(port), "--strictPort"], { stdio: "ignore", detached: true });
   const base = `http://127.0.0.1:${port}`;
   let ready = false;

@@ -4,7 +4,7 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 
 | | |
 |---|---|
-| **Last updated** | 2026-11-21 (brief v1.0, glossary rev 4: aligned with schema v0.2) |
+| **Last updated** | 2026-11-21 (glossary rev 5: admin protocol, ADR-17) |
 | **Status** | Reviewed by TPM. Part E decisions applied. |
 
 **Key:**
@@ -20,7 +20,7 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 
 | Term | Definition | Ref |
 |---|---|---|
-| **Admin** | The single global operator (the TPM) in v1. Creates groups, approves or declines group requests, adds and deletes members, resets PINs, and archives or restores lists. Can also be a member of any group. Signs in to the **admin area** with the **admin credential**. Per-group admins are in the backlog (B-001). | FR-2 |
+| **Admin** | The single global operator (the TPM) in v1. Creates groups, approves or declines group requests, adds and deletes members, resets PINs, and archives or restores lists. Can also be a member of any group. Works through the **admin protocol** with the **admin key** (ADR-17); there are no admin screens yet (B-017). Per-group admins are in the backlog (B-001). | FR-2 |
 | **Visitor** | Someone using the app who isn't a member of any group. A visitor can join with a code or invite link, or submit a group request. | FR-1 |
 | **Requester** | A visitor who has submitted a group request. Once the request is approved, they become the new group's first joined member. | FR-1.2 |
 | **Member** | A person in a group, identified by their display name. Has exactly one list per group. One person can be a member of several groups. | FR-1 |
@@ -43,8 +43,16 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | **Member token** | A random secret stored in the browser that identifies a member on later visits. Each browser or device has its own token, and one member can have several. | FR-1.5 |
 | **Recovery** | Restoring a member's identity in a new browser, on the Join screen: choose your own name in the dropdown and enter only your PIN. After a wrong PIN: "I don't have a PIN yet" / "I can't remember my PIN". A new member token is issued. | FR-1.7 |
 | **"Is that you?" check** | When a new person types a name already in the group, the Join screen asks whether it's them. Yes leads to that person's PIN; No asks for a distinguishing name (e.g. "Alex B"). | FR-1.11 |
-| **Admin area** | The separate part of the app where the admin works. | FR-2 |
-| **Admin credential** | The secret the admin uses to sign in to the admin area. It's separate from any member PIN. | NFR-7 |
+| **Admin area** | *Deferred (B-017).* Admin screens, which would sit behind Cloudflare Access. Until then the admin uses the admin protocol. | FR-2 |
+| **Admin credential** | The secret that proves a request comes from the admin. Separate from any member PIN. In v1 this is the **admin key**. | NFR-7 |
+| **Admin key** | The admin credential in v1: a secret of at least 32 characters, one per environment, held by the Worker as the secret `ADMIN_KEY` and sent in the `X-Admin-Key` header. Never in the repo, the chat, a command line or the database. Without it, admin endpoints are off. | NFR-7, ADR-17 |
+| **Admin protocol** | `giftlist-admin/1`: how the admin reads and changes groups and members without screens. Every change goes plan → review → apply. See `ADMIN_PROTOCOL.md`. | FR-2, ADR-17 |
+| **Change set** | One batch of admin operations (e.g. approve a request, create a group, add people), with a `changeId` used once and an optional note. Groups are named by ID, never by code. | ADR-17 |
+| **Operation** | One step in a change set: `request.approve`, `request.decline`, `group.create`, `member.add`, `member.remove`, `member.resetPin` or `group.setFairShare`. | ADR-17 |
+| **Plan** | The server's check of a change set: what each operation would do, in plain words, plus warnings or errors. Writes nothing except the stored plan. Valid for 24 hours. | ADR-17 |
+| **Plan basis** | The state a plan was made against: the version of each group it touches and the status of each request it decides. If either changes, the plan is stale. | ADR-17 |
+| **Apply** | Running a reviewed plan: exactly what was reviewed, all or nothing, once only. Refused if the plan is stale, superseded or expired. | ADR-17 |
+| **Audit log** | The `admin_changes` table: every change set, its plan, when it was applied and its result. Never holds codes, PINs, hints or the key. | ADR-17 |
 | **Surprise rule** | An item's owner never receives any claim information about their own items: whether they're claimed, who claimed them, whether they're purchased, or anything about fair share. The **server** enforces this. | FR-3.4, NFR-5 |
 
 ## A3. Groups
@@ -120,6 +128,7 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | **Dev/test** | The environments where all building and testing happen. |
 | **Prod** | The live environment. Deploying to it requires a full review and TPM sign-off. |
 | **Spike** | A short, time-boxed experiment to answer a technical question before we commit to a design. |
+| **AP-n** | A rule of the admin protocol (`ADMIN_PROTOCOL.md` §1). |
 
 ---
 
@@ -274,11 +283,28 @@ The auto-fill experiment (PR-002) will confirm which detail fields matter for ea
 
 | Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
 |---|---|---|---|---|---|---|
-| `admin_credential_hash` | hash | Yes | Admin | **Never sent anywhere** | How it's stored and rotated is decided in the architecture doc. | NFR-7 |
+| `ADMIN_KEY` *(Worker secret, replaces `admin_credential_hash`)* | secret | Yes, for admin | TPM | **Never sent anywhere** | At least 32 characters, one per environment. Not stored in the database. Rotated by setting a new Worker secret and network secret. | NFR-7, ADR-17 |
 | `soft_delete_days` | integer | Yes | Config | Internal | 90. A setting, not hard-coded. | FR-7.1 |
 | `pin_max_attempts` / `pin_lockout_minutes` | integer | Yes | Config | Internal | 5 / 15. | NFR-4 |
 | `dashboard_refresh_seconds` | integer | Yes | Config | Internal | 30. | FR-4.3 |
 | `fair_share_buffer_default` | decimal | Yes | Config | Internal | 1.0. Used when a new group is created. | FR-6.3 |
+
+---
+
+## B11. Admin change (audit log)
+One row per change set (`admin_changes`, migration 0003).
+
+| Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
+|---|---|---|---|---|---|---|
+| `id` | text | Yes | Admin | Admin | The `changeId`: 1–64 letters, numbers, dots, dashes, underscores. Used once. | AP-5 |
+| `note` | text | No | Admin | Admin | Up to 200 characters. | |
+| `ops_json` | JSON | Yes | Admin | Admin | The operations as planned. Groups by ID, never by code. | AP-8 |
+| `plan_id` / `plan_json` | id / JSON | Yes | System | Admin | The current plan and its step summaries, as reviewed. Replaced if planned again. | AP-3, AP-6 |
+| `basis_json` | JSON | Yes | System | Internal | Group versions and request statuses the plan was based on. | AP-3 |
+| `status` | enum | Yes | System | Admin | `planned` or `applied`. See C6. | |
+| `actor` | text | Yes | System | Admin | `admin-key` in v1. | ADR-17 |
+| `planned_at` / `applied_at` | timestamp | Yes / No | System | Admin | | |
+| `result_json` | JSON | When applied | System | Admin | Step summaries and new group IDs. Never codes, PINs, hints or the key. | AP-8 |
 
 ---
 
@@ -312,6 +338,9 @@ A member who joins with a code or invite link is created directly as `joined`.
 
 ### C5. Group request status
 `pending` → `approved` (the group is created and the requester becomes its first joined member) / `declined`
+
+### C6. Admin change status
+`planned` (stored for review; replaced if planned again; expires after 24 hours) → `applied` (final; applying again returns the same result).
 
 ---
 
@@ -357,3 +386,7 @@ The TPM confirmed these field-level decisions on 2026-11-21.
 | G29 | PIN hint | Optional, up to 40 characters, can't contain the PIN, shown on request on Sign back in, cleared by a PIN reset (TPM UI review round 1) |
 | G30 | Extra protection for 4-digit PINs | *Pending TPM:* after 3 lockouts in 24 hours, lock until the organiser resets the PIN |
 | G31 | Keep the "Already here" names line on the Join screen | *Pending TPM:* keep it |
+| G34 | Admin screens in v1 | **Not now** (TPM, 2026-11-21). Admin work goes through the admin protocol with an admin key (ADR-17). Screens and Cloudflare Access move to backlog B-017. |
+| G35 | Two groups with the same name | Allowed. Codes and IDs keep them apart; planning warns. |
+| G36 | Range of the fair-share buffer | 0.5 to 3, set per group with `group.setFairShare` (or when creating the group). |
+| G37 | Are change set files kept in the repo? | No. They're working files; the audit log in the database is the record. They name people, and the repo isn't the place for that. |

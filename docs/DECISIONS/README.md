@@ -7,7 +7,7 @@ Each record captures one decision: its context, the decision itself and its cons
 | [ADR-01](ADR-01.md) | Cloudflare Workers, Static Assets and D1 as the platform | Accepted | 2026-11-21 |
 | [ADR-02](ADR-02.md) | Free plan for dev; upgrade to Workers Paid before prod | Accepted | 2026-11-21 |
 | [ADR-03](ADR-03.md) | TypeScript, Hono, React + Vite, hand-written SQL, Vitest, Playwright | Accepted | 2026-11-21 |
-| [ADR-04](ADR-04.md) | Admin sign-in via Cloudflare Access | Accepted | 2026-11-21 |
+| [ADR-04](ADR-04.md) | Admin sign-in via Cloudflare Access | Superseded by ADR-17 (for now) | 2026-11-21 |
 | [ADR-05](ADR-05.md) | PINs hashed with HMAC-SHA-256 and a secret pepper | Accepted | 2026-11-21 |
 | [ADR-06](ADR-06.md) | Advisory fair-share check | Accepted | 2026-11-21 |
 | [ADR-07](ADR-07.md) | Dashboard refresh by version check | Accepted | 2026-11-21 |
@@ -20,3 +20,4 @@ Each record captures one decision: its context, the decision itself and its cons
 | [ADR-14](ADR-14.md) | Branching workflow | Accepted | 2026-11-21 |
 | [ADR-15](ADR-15.md) | shadcn/ui as the design language | Accepted | 2026-11-21 |
 | [ADR-16](ADR-16.md) | Dev deploy embeds the web app in the Worker | Accepted (dev only) | 2026-11-21 |
+| [ADR-17](ADR-17.md) | Admin work through a plan → apply protocol, protected by an admin key | Accepted | 2026-11-21 |

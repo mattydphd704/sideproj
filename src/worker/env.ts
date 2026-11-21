@@ -2,6 +2,8 @@ export type Env = {
   DB: D1Database;
   /** Secret key used for PIN hashes and rate-limit keys (ADR-05). Different in every environment. */
   PIN_PEPPER: string;
+  /** Secret key for the admin protocol (ADR-17). Admin endpoints are off unless it's set (32+ characters). */
+  ADMIN_KEY?: string;
   APP_ENV: string;
   SOFT_DELETE_DAYS: string;
   PIN_MAX_ATTEMPTS: string;

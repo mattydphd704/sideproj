@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Status** | v1.0, approved by TPM |
+| **Status** | v1.1, approved by TPM (v1.1: admin protocol, ADR-17) |
 | **Last updated** | 2026-11-21 |
 | **Based on** | `PROJECT_BRIEF.md` v0.9, `GLOSSARY.md` rev 3 |
 | **Hosting constraint (TPM)** | Cloudflare, using the Free plan or the **Workers Paid** plan ($5 a month) |
-| **Revisions** | v0.1 first draft · v0.2 TPM decisions on A1, A2, A4 and A5 recorded; A3 advice added · v1.0 A3 accepted (option 1, with the exact version in backlog B-012); `/j/` short path added (§6.10) |
+| **Revisions** | v0.1 first draft · v0.2 TPM decisions on A1, A2, A4 and A5 recorded; A3 advice added · v1.0 A3 accepted (option 1, with the exact version in backlog B-012); `/j/` short path added (§6.10) · v1.1 admin protocol with an admin key instead of admin screens behind Cloudflare Access (ADR-17, §6.8, AR-09) |
 
 Cloudflare limits quoted here were checked against Cloudflare's docs on 2026-11-21 (sources in §12). Anything marked **[verify]** must be rechecked in the Cloudflare dashboard when the account is set up.
 
@@ -48,7 +48,7 @@ At v1 scale (fewer than 100 groups), the $5 plan's included usage covers prod wi
  │                                                                           │
  │  D1 (SQLite) ── one database per environment                              │
  │                                                                           │
- │  Cloudflare Access (Zero Trust) ── protects /admin and /api/admin/*       │
+ │  Admin protocol /api/admin/* ── admin key (X-Admin-Key), ADR-17          │
  └───────────────────────────────────────────────────────────────────────────┘
                  │ outbound HTTPS (auto-fill only)
                  ▼
@@ -73,7 +73,7 @@ At v1 scale (fewer than 100 groups), the $5 plan's included usage covers prod wi
 | Unit and API tests | **Vitest** with a real local D1 database from wrangler's local runtime (`getPlatformProxy`) | Runs **inside this container, with no Cloudflare account needed**. The Workers test pool was dropped because of a security audit (ADR-13). The Worker itself is checked with `vite dev` and, later, Playwright end-to-end tests. |
 | End-to-end tests | **Playwright** (already installed here) | Covers whole user journeys, including the surprise rule and visibility. |
 | Local runtime | `wrangler dev` (Miniflare) | The full app runs locally, offline. |
-| Admin sign-in | **Cloudflare Access** (recommended, AD-04) | You sign in with your email. We don't store an admin password. |
+| Admin access | **Admin protocol with an admin key** (ADR-17). Cloudflare Access (AD-04) returns with admin screens (B-017). | No admin screens yet. The key is a Worker secret, never in the database, repo or chat. |
 
 ---
 
@@ -104,7 +104,7 @@ At v1 scale (fewer than 100 groups), the $5 plan's included usage covers prod wi
 | Group request and approval (FR-1.2) | Request token cookie. The waiting screen checks status. | ✅ | ✅ | |
 | Invite links | Share menu or clipboard in the browser | ✅ | ✅ | |
 | Multiple groups per browser (FR-1.9) | One cookie per membership | ✅ | ✅ | |
-| Admin area (FR-2, NFR-7) | Cloudflare Access in front of `/admin` and `/api/admin/*` | ✅ | ✅ | Access has a free Zero Trust plan, and you're one user. **[verify]** the seat count |
+| Admin (FR-2, NFR-7) | Admin protocol on `/api/admin/*`, admin key as a Worker secret (ADR-17) | ✅ | ✅ | Secrets are free on both plans. Cloudflare Access (free Zero Trust plan) is only needed for admin screens later (B-017). |
 | Items, links, visibility, stars (FR-3) | D1 tables | ✅ | ✅ | |
 | Auto-fill from links (FR-3.1b, PR-002) | Worker `fetch()` → stream HTML → extract Open Graph and schema.org (JSON-LD) data | ⚠️ | ✅ | **Free: the 10 ms CPU limit** can be exceeded on large pages, causing a failure (shown as "auto-fill failed", item still saves). Paid allows up to 30 s by default. |
 | Surprise rule and hidden items enforced on the server (NFR-5) | A single view-builder module and tests against every row of glossary Part D | ✅ | ✅ | |
@@ -180,10 +180,14 @@ Steps 2 and 4 aren't in one transaction (AD-06), so a simultaneous claim by some
 - **Extraction:** Cloudflare's streaming `HTMLRewriter` pulls Open Graph and `<meta>` tags, plus `application/ld+json` blocks that describe a Product or Offer. Only fields the owner hasn't edited are filled in (`user_edited_fields`).
 - **Known risk:** some large retailers block requests from cloud servers. The PR-002 experiment will measure success rates by retailer and category. When auto-fill fails, the owner fills in details by hand.
 
-### 6.8 Admin
-- `/admin` (pages) and `/api/admin/*` sit behind **Cloudflare Access**, with only your email allowed. The Worker also checks the signed Access token Cloudflare adds to each request, as a second layer.
-- With Access, the glossary field `admin_credential_hash` isn't needed. If you choose AD-04's fallback instead, it comes back as a hashed secret set with a Worker Secret.
-- Admin pages cover: group requests queue, create group, add or delete members, reset PIN, archive or restore lists, fair-share buffer per group.
+### 6.8 Admin *(revised: ADR-17 supersedes AD-04 for now)*
+- **No admin screens yet** (TPM, G34). The admin works through the **admin protocol** (`ADMIN_PROTOCOL.md`): read endpoints plus **plan** and **apply** under `/api/admin/*`.
+- **Admin key:** every admin call carries `X-Admin-Key`, compared (hashed, constant time) with the Worker secret `ADMIN_KEY`. If the secret is missing or shorter than 32 characters, every admin endpoint answers `503` (fail closed, like the `PIN_PEPPER` check). 10 wrong keys from one network in 15 minutes block it for the rest of the window.
+- **On dev, the key stays off the session's machine:** it's saved as a network secret on the `sideproj` cloud environment for the dev host, and the session's proxy adds the header (AR-09).
+- **Plan → apply:** plan checks a change set and stores it (`admin_changes`, migration 0003), writing nothing else. Apply re-checks, refuses if anything differs from the reviewed plan, then runs every statement in one D1 `batch()` that starts with a guard statement. If the state changed in between, the guard fails and D1 rolls the whole batch back.
+- **Covered now:** approve or decline requests, create groups, add, remove and reset people, fair-share setting. **Later (protocol 1.1):** archive and restore, once items exist.
+- **Audit:** every change set is kept in `admin_changes`, without codes, PINs, hints or the key. `actor` is `admin-key`; with one shared key there's no per-person identity, which suits the single admin (FR-2.7).
+- **Later:** admin screens (B-017) can sit behind Cloudflare Access (AD-04, AR-04) and call the same plan and apply endpoints.
 
 ### 6.10 URLs and link shortening
 - The app uses `giftlist-dev.<account-subdomain>.workers.dev` (and later `giftlist-prod…`).
@@ -210,7 +214,7 @@ Steps 2 and 4 aren't in one transaction (AD-06), so a simultaneous claim by some
 
 ## 7. API outline
 
-Every endpoint returns JSON. "M" means a member token is required for the group, and "A" means Cloudflare Access plus admin.
+Every endpoint returns JSON. "M" means a member token is required for the group, and "A" means the admin key (ADR-17).
 
 | Method and path | Auth | Purpose | FR |
 |---|---|---|---|
@@ -230,7 +234,9 @@ Every endpoint returns JSON. "M" means a member token is required for the group,
 | `PATCH /api/claims/:id` | M (claimer) | Mark purchased; clear the updated flag | 5.5, 5.7 |
 | `GET /api/groups/:id/claimed` | M | My Claimed list, tombstones and fair-share nudges | 5.3, 6.5 |
 | `DELETE /api/tombstones/:id` | M (claimer) | Dismiss a tombstone | 7.2 |
-| `/api/admin/*` | A | Requests, groups, members, PIN reset, archive/restore, settings | 2 |
+| `GET /api/admin/requests`, `/groups`, `/groups/:id`, `/changes` | A | Read: request queue, groups (with codes and invite links), one group's people and their states, audit log | 2 |
+| `POST /api/admin/plan` | A | Check a change set and store the plan; writes nothing else | 2 |
+| `POST /api/admin/apply` | A | Apply a reviewed plan, all or nothing, once only | 2 |
 
 ---
 
@@ -275,7 +281,8 @@ Each one has its own record in `docs/DECISIONS/` (AD-nn = ADR-nn). AD-12 covers 
 | AD-01 | Cloudflare Workers, Static Assets and D1 as the platform | Proposed |
 | AD-02 | Free plan for local and dev, which is the current account. **The TPM upgrades to Workers Paid before the first prod deploy.** This is a prod readiness gate. | **Accepted (A1)** |
 | AD-03 | TypeScript, Hono, React + Vite, hand-written SQL, Vitest, Playwright | Proposed |
-| AD-04 | Admin sign-in via **Cloudflare Access**. Fallback: our own admin secret | **Accepted (A2)** |
+| AD-04 | Admin sign-in via **Cloudflare Access**. Fallback: our own admin secret | Accepted (A2), **superseded for now by AD-17** |
+| AD-17 | Admin protocol (plan → review → apply) with an admin key; no admin screens yet | **Accepted (2026-11-21)** |
 | AD-05 | PINs hashed with HMAC-SHA-256 and a secret pepper, not a slow hash | Proposed |
 | AD-06 | Fair-share check is advisory and not in the same transaction as the claim. The claim itself is atomic via a unique index. NFR-9 updated to match. Exact version (Durable Object per group) is in backlog B-012 and tested in PR-003. | **Accepted (A3)** |
 | AD-10 | URLs: free `*.workers.dev` addresses for dev and for now. No custom domain. Invite links use the app's own `/j/<code>` short path and are never sent through third-party shorteners (§6.10). | **Accepted (A4)** |
@@ -297,7 +304,8 @@ None of these have been granted. **I won't use any of them until you approve eac
 | AR-01 | **Status: granted, and dev is live (2026-11-21):** https://giftlist-dev.mcjdonovan.workers.dev. The token is saved on the `sideproj` cloud environment; see `DEV_ENVIRONMENT.md` and ADR-16. **Earlier status: partly granted.** The TPM connected the Cloudflare connector (2026-11-21). It has been used only for read-only checks so far. Any create, change or deploy action still needs a go-ahead at the first dev deploy. **Original request:** a **Cloudflare account**, plus an **API token** limited to Workers Scripts (edit), D1 (edit) and Account Settings (read) for **dev** only | To deploy `giftlist-dev` and run D1 migrations | When we first deploy to dev, after local development is done | Owned by you. Token limited to dev resources if possible. **Not needed for local development or tests.** |
 | AR-02 | **Status: granted 2026-11-21, under ADR-13's dependency policy.** **npm registry** in this container | To install packages: hono, react, vite, wrangler, vitest and `@cloudflare/vitest-pool-workers` | Start of coding | Public packages only. Usually allowed by default. |
 | AR-03 | **Outbound HTTPS to retailer sites from this container** | To run the PR-002 auto-fill experiment with real product links | The PR-002 experiment | Read-only fetches to a list of retailer hosts that you approve. |
-| AR-04 | **Cloudflare Access (Zero Trust)** enabled on the account, with your email as the only allowed admin | Admin sign-in (AD-04) | Before admin features are tested in dev | Free plan. You do the setup in the dashboard, and I'll give you the steps. |
+| AR-04 | **Deferred with the admin screens (B-017, ADR-17).** **Cloudflare Access (Zero Trust)** enabled on the account, with your email as the only allowed admin | Admin sign-in (AD-04) | When admin screens are built | Free plan. You do the setup in the dashboard, and I'll give you the steps. |
+| AR-09 | **Status: approved by the TPM 2026-11-21 (option A); waiting for the TPM to set the key.** **Admin key for dev:** the TPM creates a random key of at least 32 characters, sets it as the Worker secret `ADMIN_KEY` on `giftlist-dev`, and saves the same key as a network secret on the `sideproj` cloud environment for host `giftlist-dev.mcjdonovan.workers.dev`, header `X-Admin-Key` | So this session can use the admin protocol on dev (ADR-17) | Now | The key is never in the repo, chat or command line. The engineer never sees it. Prod gets its own key at AR-07. |
 | AR-05 | *(Optional)* custom domain on Cloudflare | Nicer URL than `*.workers.dev` | Before prod | Costs about $10–$15 a year. |
 | AR-06 | *(Optional, later)* GitHub Actions running tests on pull requests | Automated checks before merging | After v1 is working | No secrets needed for tests. Deploys stay manual. |
 | AR-08 | **shadcn/ui build packages** (ADR-15): tailwindcss 4.3.5, @tailwindcss/vite 4.3.5, radix-ui 1.8.1, class-variance-authority 0.7.1, clsx 2.1.1, tailwind-merge 3.7.0, lucide-react 1.70.0, sonner 2.0.8, input-otp 1.5.0, tw-animate-css 1.4.0 | To build the UI | Before the first screen is built | Checked 2026-11-21 without installing: compatible with React 19 and Vite 8, 0 known vulnerabilities, no install scripts, 111 packages including their dependencies. All at least 14 days old. **Awaiting TPM approval.** |
@@ -319,7 +327,7 @@ None of these have been granted. **I won't use any of them until you approve eac
 | # | Question | Engineer's recommendation |
 |---|---|---|
 | A1 | Which plan for prod (AD-02)? | **Decided:** Free for dev now. The TPM upgrades to Paid before prod. |
-| A2 | Admin sign-in (AD-04)? | **Decided:** Cloudflare Access |
+| A2 | Admin sign-in (AD-04)? | **Decided:** Cloudflare Access. **Revised 2026-11-21:** admin protocol with an admin key, no screens yet (ADR-17). |
 | A3 | Is the fair-share race acceptable (AD-06)? | **Decided:** yes, using the simplest free option. The exact version is backlog B-012, tested in PR-003. |
 | A4 | Custom domain, or `workers.dev` for v1? | **Decided:** `workers.dev`, using TinyURL for the home page if needed. Invite links use the `/j/` short path (§6.10). |
 | A5 | Who owns the Cloudflare account and deploys? | **Decided:** as recommended. |

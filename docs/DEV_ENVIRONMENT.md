@@ -6,7 +6,8 @@
 | **Status** | Live since 2026-11-21 (AR-01 approved by the TPM). **Test data cleared 2026-11-21 at the TPM's request:** the database is empty (schema and migrations kept). |
 | **Scope** | Section 1, Getting in: Home, Join (one way in: choose your name, PIN, "Is that you?", wrong-PIN help, hint), Start a group, Waiting, Declined, plus the temporary "inside the group" screen |
 | **Cloudflare** | Worker `giftlist-dev`, D1 database `giftlist-dev`, account owned by the TPM, Free plan (ADR-02) |
-| **Branch deployed** | `claude/sharp-knuth-889h6a-ui-workflow` |
+| **Branch deployed** | `claude/beautiful-brown-z7s8tq` (Section 1 + admin protocol, ADR-17) |
+| **Admin** | Admin protocol on `/api/admin/*` (`ADMIN_PROTOCOL.md`). **Off until the TPM sets the dev admin key** (AR-09, steps below). |
 
 ## Test data: currently cleared
 The dev database has **no groups or members** right now, so code `SMTH-2345` won't work until the data is re-seeded (steps below). This is the data set to bring back (the same as the prototype, GR-8):
@@ -55,13 +56,22 @@ The Cloudflare commands need `CLOUDFLARE_API_TOKEN` (any placeholder in this clo
 ## What works differently from the prototype
 - It's the **real** server and database. What you do persists, and other browsers see it.
 - **Locking really locks.** 5 wrong PINs lock that name for 15 minutes. Ten failed attempts from your network in 15 minutes block further attempts for a while. Ask the engineer to clear it if it gets in the way of testing.
-- **Approving "Start a new group" requests:** the admin area isn't built yet. Ask the engineer to approve or decline, which takes a few seconds (`scripts/dev-requests.mjs`). Then tap "Check now", or wait up to 30 seconds.
+- **Approving "Start a new group" requests:** tell the engineer in the Claude session. They plan the approval with the admin protocol, show you the plan, and apply it when you say so. Then tap "Check now", or wait up to 30 seconds. (`scripts/dev-requests.mjs` is retired, ADR-17.)
 - **The "inside the group" screen** is still the placeholder (backlog B-016).
+
+## Admin key for dev (TPM, once; AR-09)
+The engineer never sees this key. You set it in two places:
+1. **Make a key:** generate a random password of at least 32 characters in your password manager (letters and numbers only is fine).
+2. **On the Worker:** Cloudflare dashboard → Workers & Pages → `giftlist-dev` → Settings → Variables and Secrets → Add → type **Secret**, name **`ADMIN_KEY`**, value: the key → Deploy.
+3. **On the cloud environment:** the engineer opens the secure credential form for host `giftlist-dev.mcjdonovan.workers.dev`, header **`X-Admin-Key`**, no prefix. Paste the same key there. The session's proxy then adds it to the engineer's requests to dev.
+
+To rotate it, repeat steps 1–3 with a new key. To switch admin off on dev, delete the `ADMIN_KEY` secret (every admin call then answers 503).
 
 ## How it's deployed (engineer)
 - `npm run deploy:dev`: builds the web app, embeds it in the Worker (ADR-16) and deploys with `wrangler.dev.jsonc`.
 - Migrations: `npx wrangler d1 migrations apply DB --config wrangler.dev.jsonc --remote`.
-- The secret `PIN_PEPPER` is set only as a Cloudflare secret, never stored in the repo.
+- The secrets `PIN_PEPPER` and `ADMIN_KEY` are set only as Cloudflare secrets, never stored in the repo.
+- Admin work: `npm run admin -- <command>` (dev is the default; see `ADMIN_PROTOCOL.md` §8).
 - Credentials: a Cloudflare API token saved on the `sideproj` cloud environment (Workers + D1), injected by the session's network proxy. It's never in the repo or the chat.
 - Preview URLs are off, so the only address is the one above.
 

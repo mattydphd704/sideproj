@@ -1,2 +1,4 @@
 # Copy to .dev.vars for local development. Real secrets are set with `wrangler secret put`.
 PIN_PEPPER="local-dev-pepper-not-secret-0123"
+# Admin protocol key for local use only (ADR-17). Dev and prod keys are set on Cloudflare, never here.
+ADMIN_KEY="local-admin-key-not-secret-0123456789abcdef"

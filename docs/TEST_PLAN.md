@@ -85,7 +85,7 @@ npm run verify
 ### 2.2 Database schema (SMK, SCH, CLM): ✅ `test/schema/`
 | ID | Test | Requirement | Status |
 |---|---|---|---|
-| SMK-01 | All 12 tables exist | DATA_SCHEMA §2 | ✅ |
+| SMK-01 | All 13 tables exist (12 + `admin_changes`, migration 0003) | DATA_SCHEMA §2 | ✅ |
 | SCH-01 | Foreign keys enforced | DATA_SCHEMA §1 | ✅ |
 | SCH-02 | Group code is exactly 8 characters | G2 | ✅ |
 | SCH-03 | Group codes are unique | NFR-3 | ✅ |
@@ -221,18 +221,26 @@ One test for each cell of glossary Part D, for each viewer role.
 | LIF-11 | Restore after a re-add keeps both copies | FR-7.4 | 🟡 |
 | LIF-12 | Removing a member: items deleted (with tombstones for others' claims), claims released, tokens revoked | FR-2.3 | 🟡 |
 
-### 2.10 Admin (ADM): 🟡
+### 2.10 Admin protocol (ADM): ✅ `test/api/admin.test.ts` (ADR-17, `ADMIN_PROTOCOL.md`)
 | ID | Test | Requirement | Status |
 |---|---|---|---|
-| ADM-01 | Admin endpoints reject requests without a valid Cloudflare Access token | ADR-04, NFR-7 | 🟡 |
-| ADM-02 | Valid Access token accepted (signature, audience and expiry checked) | ADR-04 | 🟡 |
-| ADM-03 | Create a group → code generated in the right format | FR-2.1, G2 | 🟡 |
-| ADM-04 | Add a pending member | FR-2.2 | 🟡 |
-| ADM-05 | Remove a member (see LIF-12) | FR-2.3 | 🟡 |
-| ADM-06 | Reset a PIN (see ID-18) | FR-2.6 | 🟡 |
-| ADM-07 | Approve or decline group requests (see REQ-03, REQ-04) | FR-2.4 | 🟡 |
-| ADM-08 | Archive and restore (see LIF-07–LIF-09) | FR-2.8 | 🟡 |
-| ADM-09 | Change a group's fair-share buffer | G3 | 🟡 |
+| ADM-01 | Admin endpoints need the right admin key; with no key (or one under 32 characters) configured they're all off (503); a member's cookie grants nothing | NFR-7, AP-10 | ✅ |
+| ADM-02 | 10 wrong keys from one network block it for the window, even with the right key | NFR-7 | ✅ |
+| ADM-03 | `group.create` → code in the right format (G2), invite link, `created_via = admin`; the code works on the Join screen | FR-2.1, G2 | ✅ |
+| ADM-04 | `member.add` adds people as not joined yet, who can then join by name; duplicate names refused at plan time; group version goes up | FR-2.2 | ✅ |
+| ADM-05 | `member.remove`: items, links and claims on them deleted, tombstones for other claimers, their own claims released (`claimer_removed`), tokens revoked, name reusable (covers LIF-12) | FR-2.3, G12 | ✅ |
+| ADM-06 | `member.resetPin`: PIN and hint cleared, lock lifted, signed out everywhere; refused for someone who hasn't joined | FR-2.6, G5 | ✅ |
+| ADM-07 | `request.approve` / `request.decline`; the `expect` guard refuses the wrong request; the approved requester is moved in by the waiting screen; a decided request can't be decided again | FR-2.4, FR-1.2, AP-9 | ✅ |
+| ADM-08 | Archive and restore through the protocol (see LIF-07–LIF-09) | FR-2.8 | 🟡 protocol 1.1, after items exist |
+| ADM-09 | `group.setFairShare` within 0.5–3; anything else refused | G3, G36 | ✅ |
+| ADM-10 | Planning writes nothing except the stored plan | AP-1, AP-2 | ✅ |
+| ADM-11 | All or nothing: a change landing between apply's checks and its batch makes the guard fail and rolls back every statement | AP-4 | ✅ (checked against a deliberate break) |
+| ADM-12 | A plan is refused (`plan_stale`) if someone joined after it was made; planning again works; the old plan is `plan_superseded` | AP-3, AP-6 | ✅ |
+| ADM-13 | A change set is applied once; applying again replays the result; a used ID can't be planned again; a racing second apply fails inside its batch | AP-5 | ✅ (checked against a deliberate break) |
+| ADM-14 | The audit log records each change set, with no codes, PINs, hints or the key | AP-8 | ✅ |
+| ADM-15 | Read endpoints: requests, groups (codes, invite links, counts), one group's people with states (joined, not joined yet, locked, PIN reset); no PIN or token data | FR-2 | ✅ |
+| ADM-16 | Strict checking: protocol version, change ID, unknown ops and fields, currency, lengths, missing `expect`, bad or reused `@ref`, unknown group | AP-7 | ✅ |
+| ADM-17 | Plans expire after 24 hours; applying an unknown plan is 404 | AP-6 | ✅ |
 
 ### 2.11 Dashboard (DSH): 🟡
 | ID | Test | Requirement | Status |
@@ -319,7 +327,7 @@ Each test builds the clickable prototype and walks one scenario **exactly as its
 | DEV-01 | Migrations apply to the remote dev D1 | ✅ 2026-11-21 |
 | DEV-02 | Foreign keys enforced on real D1 (repeat of SCH-01) | ✅ 2026-11-21 |
 | DEV-03 | Health check, `/j/`, 404 and cross-site block on `*.workers.dev` (repeat of ENV-07–09) | ✅ 2026-11-21 |
-| DEV-04 | Admin area blocked without Cloudflare Access | 🔒 AR-04 |
+| DEV-04 | Admin endpoints on dev refuse calls without the admin key (401), and work through the protocol with it | 🔒 AR-09 (TPM sets the key) |
 | DEV-05 | Key Section 1 journeys in a phone browser against dev (SC-01, SC-05, SC-13, 360 px, dark mode) | ✅ partly, 2026-11-21 (later sections pending) |
 | DEV-08 | Group request → approved → moved in, against dev | ✅ 2026-11-21 |
 | DEV-06 | CPU time per request under the Free plan's 10 ms (except auto-fill) | 🔒 |
@@ -347,7 +355,7 @@ Every requirement must map to at least one test before v1 ships.
 | Requirement | Tests |
 |---|---|
 | FR-1 Groups and access | ID-01–ID-21, REQ-01–05, ENV-08, SCH-02–08 |
-| FR-2 Admin | ADM-01–09, LIF-12, REQ-03–04 |
+| FR-2 Admin | ADM-01–17, LIF-12, REQ-03–04 |
 | FR-3 My list | ITM-01–08, SCH-09–16, AF-01–07 |
 | FR-4 Dashboard | DSH-01–03, VIS-01–10 |
 | FR-5 Claiming | CLM-01–13, VIS-03–05 |
@@ -359,7 +367,7 @@ Every requirement must map to at least one test before v1 ships.
 | NFR-4 PIN security | ID-06–12 |
 | NFR-5 Server enforcement | VIS-01–10 |
 | NFR-6 Minimal personal data | VIS-10, ID-15 |
-| NFR-7 Admin credential | ADM-01–02, DEV-04 |
+| NFR-7 Admin credential (admin key) | ADM-01–02, DEV-04 |
 | NFR-8 Environments | ENV-*, DEV-*, REL-* |
 | NFR-9 Advisory fair share | FS-01–04, PR-003 scenario 8 |
 | NFR-10 Nightly job | LIF-04–06, DEV-07 |
@@ -391,10 +399,11 @@ Every requirement must map to at least one test before v1 ships.
 | REQ (group requests) | 8 | 8 | 0 | 0 |
 | UI, Section 1 | 24 | 24 | 0 | 0 |
 | PROTO (prototype walkthroughs) | 15 | 15 | 0 | 0 |
-| ITM / VIS / CLM-API / FS / LIF / ADM / DSH | 58 | 0 | 58 | 0 |
+| ADM (admin protocol) | 17 | 16 | 1 | 0 |
+| ITM / VIS / CLM-API / FS / LIF / DSH | 49 | 0 | 49 | 0 |
 | AF | 7 | 0 | 6 | 1 |
 | E2E | 8 | 0 | 8 | 0 |
 | DEV | 7 | 0 | 0 | 7 |
-| **Total automated** | **189** | **109** | **72** | **8** |
+| **Total automated** | **197** | **125** | **64** | **8** |
 
 *This table is updated by hand whenever tests move between states. Per-run results come from TEST_RESULTS.md.*

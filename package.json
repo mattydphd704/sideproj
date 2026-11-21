@@ -18,7 +18,8 @@
     "e2e": "playwright test --project=phone --project=desktop",
     "screens": "playwright test --project=screens",
     "prototype": "node scripts/build-prototype.mjs",
-    "deploy:dev": "vite build && node scripts/embed-assets.mjs && wrangler deploy --config wrangler.dev.jsonc"
+    "deploy:dev": "vite build && node scripts/embed-assets.mjs && wrangler deploy --config wrangler.dev.jsonc",
+    "admin": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 node scripts/admin.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.5",

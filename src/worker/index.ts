@@ -4,6 +4,7 @@ import { ApiError, errorResponse } from "./lib/errors";
 import { csrf } from "./middleware/csrf";
 import { identity } from "./routes/identity";
 import { groupRequests } from "./routes/groupRequests";
+import { admin } from "./routes/admin";
 
 export type { Env };
 
@@ -30,6 +31,7 @@ export function createApp() {
 
   app.route("/", identity);
   app.route("/", groupRequests);
+  app.route("/", admin);
 
   app.notFound((c) => c.json({ error: "not_found", message: "Not found." }, 404));
 

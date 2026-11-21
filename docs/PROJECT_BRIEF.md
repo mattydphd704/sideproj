@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | v1.2, approved by TPM (UI review rounds 1–3 included) |
+| **Status** | v1.3, approved by TPM (UI review rounds 1–3; admin protocol, ADR-17) |
 | **Last updated** | 2026-11-21 |
-| **Phase** | Outline (no architecture or code yet) |
+| **Phase** | Build: Section 1 (Getting in) on dev; admin protocol built (ADR-17) |
 
 ### Revision history
 | Version | Change |
@@ -18,6 +18,7 @@
 | v0.7 | Added fair-share alerts (FR-6). Replaced "expire lists" with soft delete, permanent delete and archive (FR-7). Groups and PINs persist. Auto-archive after 12 months. Q27 resolved. New questions Q28 to Q31. |
 | v0.8 | FR-6 marked as initial logic to be tuned in test (PR-003). The admin can restore archived lists using archive metadata. Q27 to Q30 resolved. Auto-archive (Q31) moved to the backlog (B-011). Created `BUGS.md`. |
 | v0.9 | Glossary field decisions G1 to G11 applied. Giver's choice items have up to 5 links. Each group has a currency. |
+| v1.3 | No admin screens for now (G34). The admin works through the **admin protocol** (plan → review → apply) with an **admin key** instead of signing in to an admin area (roles, FR-2, NFR-7; ADR-17, `ADMIN_PROTOCOL.md`). Admin screens are backlog B-017. |
 | v1.2 | TPM UI review round 3: the Join screen's dropdown lists everyone in the group. Returning people choose their name and enter only their PIN, with "I don't have a PIN yet" / "I can't remember my PIN" help after a wrong PIN. New people who type a name already in use are asked "Is that you?" (FR-1.7, FR-2.2, FR-1.11). |
 | v1.1 | TPM UI review round 1: PINs are exactly 4 numbers, shown while typing, with an optional hint (FR-1.4, FR-1.7, NFR-4, G29). The pre-added names dropdown shows only people who haven't signed in yet (FR-2.2). Open security trade-off G30. |
 | v1.0 | NFR-9 is now advisory (architecture AD-06; the exact version is backlog B-012). Invite links use the `/j/<code>` short path (FR-1.10). |
@@ -34,7 +35,7 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 
 | Role | Description |
 |---|---|
-| **Admin (operator)** | The TPM. The only person who can create groups in v1. Can add and delete members in any group, and can be a member of a group with their own list. Signs in to a separate admin area with a secret admin credential. |
+| **Admin (operator)** | The TPM. The only person who can create groups in v1. Can add and delete members in any group, and can be a member of a group with their own list. Works through the **admin protocol** with a secret **admin key** (ADR-17); admin screens are deferred (B-017). |
 | **Member** | Joins a group by entering its group code, a display name and a PIN. Can see every other member of the group by name. |
 | **Visitor** | Someone without a group code. Can submit a "Create new group" request for the admin to handle. |
 
@@ -64,6 +65,8 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - FR-1.9: **Multiple groups.** One browser can belong to several groups. The member can see all their groups and switch between them. Each group has its own separate lists, claims and PIN.
 
 ### FR-2: Admin
+*In v1, every admin action below is an operation of the **admin protocol** (`ADMIN_PROTOCOL.md`): it is planned, reviewed by the admin, then applied all at once. There are no admin screens for now (B-017).*
+
 - FR-2.1: The admin can create groups. A group's name is set at creation.
 - FR-2.2: The admin can **manually add** members to a group by name. An added member shows as **pending** until someone opens the group with that name and sets its PIN. After that, the PIN is required to take over that name. On the Join screen, the dropdown "Have you already been added?" lists **everyone in the group**: people who have signed in before, and pending people. Choosing a pending name leads to creating its PIN. *(Round 1 listed only pending people; round 3 changed this, G33.)*
 - FR-2.3: The admin can **delete** members from a group. The member's items are deleted, and any claims they made are released, so those items become available again.
@@ -148,7 +151,7 @@ The goal is to stop one member from claiming most of a person's list and leaving
 - NFR-4: **PIN security.** PINs are exactly 4 digits, stored only as salted hashes, never in plain text. After 5 wrong attempts, recovery for that member locks for 15 minutes. Hints are stored as plain text and must not contain the PIN. An admin PIN reset clears the hint. *(Stronger protection for 4-digit PINs is open as G30.)*
 - NFR-5: **Server-side enforcement.** Claim data is never sent to an item's owner, and restricted items are never sent to members they're hidden from. Hiding them in the UI is not enough.
 - NFR-6: The app stores as little personal data as possible: display names, item details and links only. No email addresses, phone numbers or passwords.
-- NFR-7: The admin area is protected by a secret credential that is separate from member PINs.
+- NFR-7: Admin actions are protected by a secret credential that is separate from member PINs: in v1, the **admin key** (ADR-17). Without it configured, admin endpoints are switched off. *(Was: "The admin area is protected by a secret credential that is separate from member PINs.")*
 - NFR-9: The fair-share check runs on the server at the time of each claim and is **advisory**. In rare cases, near-simultaneous claims for the same recipient may skip or misfire a warning, and the Claimed-list nudge catches it afterwards. **The claim itself is always atomic**: two members can never claim the same item. An exact version is in the backlog (B-012) and is tested in PR-003.
 - NFR-10: A scheduled job permanently deletes items once their 90 days in Deleted are up. It skips archived items and is idempotent: running it twice has the same effect as running it once.
 - NFR-11: Archive and restore each run as a single transaction, so a group is never left half-archived.
