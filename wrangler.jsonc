@@ -1,6 +1,6 @@
 // Cloudflare Worker configuration. See docs/ARCHITECTURE.md §4 (environments).
 // Local development and tests need no Cloudflare account.
-// Dev and prod deploys are gated by access requests AR-01 and AR-07.
+// Dev deploys use wrangler.dev.jsonc (AR-01, ADR-16). Prod is gated by AR-07.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "giftlist-local",

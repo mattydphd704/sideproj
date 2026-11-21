@@ -316,11 +316,12 @@ Each test builds the clickable prototype and walks one scenario **exactly as its
 ### 2.15 Cloudflare dev environment (DEV): 🔒 AR-01
 | ID | Test | Status |
 |---|---|---|
-| DEV-01 | Migrations apply to the remote dev D1 | 🔒 |
-| DEV-02 | Foreign keys enforced on real D1 (repeat of SCH-01) | 🔒 |
-| DEV-03 | Health check, `/j/` and 404 on `*.workers.dev` (repeat of ENV-07–09) | 🔒 |
+| DEV-01 | Migrations apply to the remote dev D1 | ✅ 2026-11-21 |
+| DEV-02 | Foreign keys enforced on real D1 (repeat of SCH-01) | ✅ 2026-11-21 |
+| DEV-03 | Health check, `/j/`, 404 and cross-site block on `*.workers.dev` (repeat of ENV-07–09) | ✅ 2026-11-21 |
 | DEV-04 | Admin area blocked without Cloudflare Access | 🔒 AR-04 |
-| DEV-05 | E2E-01 to E2E-08 against dev | 🔒 |
+| DEV-05 | Key Section 1 journeys in a phone browser against dev (SC-01, SC-05, SC-13, 360 px, dark mode) | ✅ partly, 2026-11-21 (later sections pending) |
+| DEV-08 | Group request → approved → moved in, against dev | ✅ 2026-11-21 |
 | DEV-06 | CPU time per request under the Free plan's 10 ms (except auto-fill) | 🔒 |
 | DEV-07 | Nightly job runs on schedule | 🔒 |
 

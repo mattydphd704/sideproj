@@ -17,7 +17,8 @@
     "verify": "node scripts/verify.mjs",
     "e2e": "playwright test --project=phone --project=desktop",
     "screens": "playwright test --project=screens",
-    "prototype": "node scripts/build-prototype.mjs"
+    "prototype": "node scripts/build-prototype.mjs",
+    "deploy:dev": "vite build && node scripts/embed-assets.mjs && wrangler deploy --config wrangler.dev.jsonc"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.5",

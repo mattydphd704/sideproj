@@ -8,3 +8,4 @@ playwright-report/
 coverage/
 .DS_Store
 .e2e-state/
+src/worker/generated/

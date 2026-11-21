@@ -19,3 +19,4 @@ Each record captures one decision: its context, the decision itself and its cons
 | [ADR-13](ADR-13.md) | Dependency supply-chain policy | Accepted | 2026-11-21 |
 | [ADR-14](ADR-14.md) | Branching workflow | Accepted | 2026-11-21 |
 | [ADR-15](ADR-15.md) | shadcn/ui as the design language | Accepted | 2026-11-21 |
+| [ADR-16](ADR-16.md) | Dev deploy embeds the web app in the Worker | Accepted (dev only) | 2026-11-21 |

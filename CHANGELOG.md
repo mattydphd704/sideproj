@@ -10,6 +10,13 @@ All notable changes to this project. Format: [Keep a Changelog](https://keepacha
 - `docs/UI_INTERACTION_MAPS.md` Section 1 (Getting in, T-01 to T-08) drafted: flows, phone wireframes with shadcn components, every piece of wording with a C- ID, API calls and error handling, accessibility, open points G24 to G28, and planned tests UI-01 to UI-14.
 - AR-08 (shadcn packages) prepared for approval.
 
+### Deployed: Cloudflare dev (2026-11-21)
+- **Dev app live: https://giftlist-dev.mcjdonovan.workers.dev** (AR-01). Worker `giftlist-dev`, D1 `giftlist-dev` (migrations 0001–0002), secret `PIN_PEPPER` set only on Cloudflare.
+- Seeded with the Smith Family test group (`SMTH-2345`), using the same data as the prototype (`scripts/dev-seed.mjs`).
+- ADR-16: the dev deploy embeds the web app in the Worker (`wrangler.dev.jsonc`, `src/worker/embedded.ts`, `scripts/embed-assets.mjs`, `npm run deploy:dev`), because this environment's proxy blocks the separate asset upload.
+- `scripts/dev-requests.mjs`: the engineer approves or declines dev group requests until the admin area exists.
+- Live checks DEV-01, DEV-02, DEV-03, DEV-05 (part) and DEV-08 passed; test traces removed. See `docs/DEV_ENVIRONMENT.md`.
+
 ### Changed: TPM review round 3, all open flags resolved (2026-11-21)
 - **Global flag, dark mode:** outline buttons (e.g. "Start a new group") get a visible surface and border, and borders are stronger in dark mode. A `dark:` variant follows both the device setting and an explicit `data-theme`. App-wide.
 - **One way in:** the Join screen's dropdown lists everyone in the group (reverses R1-4, G33). Returning people choose their name and enter only their PIN. After a wrong PIN: "I don't have a PIN yet" (explains, suggests e.g. "Alex B", "Use a different name") and "I can't remember my PIN" (hint + ask the organiser). A new person typing a taken name is asked "Is that you?". The separate Sign back in screen is removed (`/j/<code>/back` opens Join). Brief v1.2 (FR-1.7, FR-2.2, new FR-1.11). Server unchanged.

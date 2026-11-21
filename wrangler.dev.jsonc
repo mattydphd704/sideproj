@@ -1,0 +1,29 @@
+// Cloudflare DEV deploy config (AR-01, ADR-16). The web app is embedded in the Worker
+// (src/worker/embedded.ts), because this cloud environment's proxy blocks Wrangler's
+// separate asset upload. Deploy with: npm run deploy:dev
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "giftlist-dev",
+  "main": "src/worker/embedded.ts",
+  "compatibility_date": "2026-11-01",
+  "send_metrics": false,
+  "workers_dev": true,
+  "preview_urls": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "giftlist-dev",
+      "database_id": "25aa3572-e120-4ec8-b1ad-478ee5215180",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APP_ENV": "dev",
+    "SOFT_DELETE_DAYS": "90",
+    "PIN_MAX_ATTEMPTS": "5",
+    "PIN_LOCKOUT_MINUTES": "15",
+    "DASHBOARD_REFRESH_SECONDS": "30",
+    "FAIR_SHARE_BUFFER_DEFAULT": "1.0"
+  },
+  "triggers": { "crons": ["17 3 * * *"] }
+}
