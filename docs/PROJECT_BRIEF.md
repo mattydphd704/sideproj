@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.9, ready for TPM approval |
+| **Status** | v1.0, approved by TPM |
 | **Last updated** | 2026-11-21 |
 | **Phase** | Outline (no architecture or code yet) |
 
@@ -18,6 +18,7 @@
 | v0.7 | Added fair-share alerts (FR-6). Replaced "expire lists" with soft delete, permanent delete and archive (FR-7). Groups and PINs persist. Auto-archive after 12 months. Q27 resolved. New questions Q28 to Q31. |
 | v0.8 | FR-6 marked as initial logic to be tuned in test (PR-003). The admin can restore archived lists using archive metadata. Q27 to Q30 resolved. Auto-archive (Q31) moved to the backlog (B-011). Created `BUGS.md`. |
 | v0.9 | Glossary field decisions G1 to G11 applied. Giver's choice items have up to 5 links. Each group has a currency. |
+| v1.0 | NFR-9 is now advisory (architecture AD-06; the exact version is backlog B-012). Invite links use the `/j/<code>` short path (FR-1.10). |
 
 ## 1. Problem
 
@@ -44,7 +45,7 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
   2. Their browser shows a **"Waiting for approval"** screen and checks back automatically. The visitor doesn't need to do anything else.
   3. The request appears in the admin's queue. The admin chooses **Approve** or **Decline**.
   4. On approval, the requester's browser moves straight into the new group on their next visit, or immediately if the page is open. The requester never handles a code.
-  5. Inside every group, an **"Invite people"** button shares a join link that has the group code built in, using the phone's share menu or copy-to-clipboard. Recipients tap the link, enter a name and PIN, and they're in. Typing the code by hand still works as a fallback.
+  5. Inside every group, an **"Invite people"** button shares a join link that has the group code built in, using the phone's share menu or copy-to-clipboard. Recipients tap the link, enter a name and PIN, and they're in. Typing the code by hand still works as a fallback. The link uses the short path in FR-1.10.
   - The app sends no email and collects no contact details.
 - FR-1.3: Anyone with a group code can join that group.
 - FR-1.4: On joining, the member enters a **display name** and creates a **PIN**.
@@ -52,6 +53,11 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - FR-1.6: The PIN screen tells the user something like: *"You won't need this PIN every time. You'll only need it if you open your list on another device or after clearing your browser's cookies or cache."*
 - FR-1.7: **Recovery:** On a new device, a member enters the group code, picks their name and enters their PIN to restore their identity.
 - FR-1.8: Members can see the names of all other members of their group.
+- FR-1.10: **Invite link format.** Invite links always use the app's own short path: `https://<app-host>/j/<GROUPCODE>`, for example `…/j/K7QM-4XTR`.
+  - Opening it goes straight to the join screen for that group, with the code already filled in.
+  - The link is accepted with or without the dash, and in upper or lower case.
+  - An invalid or unknown code shows a friendly error, without revealing whether a group exists, and counts towards the join rate limit (NFR-3).
+  - Invite links are **never** sent through third-party URL shorteners. Shortening the app's home page is fine.
 - FR-1.9: **Multiple groups.** One browser can belong to several groups. The member can see all their groups and switch between them. Each group has its own separate lists, claims and PIN.
 
 ### FR-2: Admin
@@ -140,7 +146,7 @@ The goal is to stop one member from claiming most of a person's list and leaving
 - NFR-5: **Server-side enforcement.** Claim data is never sent to an item's owner, and restricted items are never sent to members they're hidden from. Hiding them in the UI is not enough.
 - NFR-6: The app stores as little personal data as possible: display names, item details and links only. No email addresses, phone numbers or passwords.
 - NFR-7: The admin area is protected by a secret credential that is separate from member PINs.
-- NFR-9: Fair-share checks and claims run in the same database transaction, so the warning reflects the true state at the moment of claiming.
+- NFR-9: The fair-share check runs on the server at the time of each claim and is **advisory**. In rare cases, near-simultaneous claims for the same recipient may skip or misfire a warning, and the Claimed-list nudge catches it afterwards. **The claim itself is always atomic**: two members can never claim the same item. An exact version is in the backlog (B-012) and is tested in PR-003.
 - NFR-10: A scheduled job permanently deletes items once their 90 days in Deleted are up. It skips archived items and is idempotent: running it twice has the same effect as running it once.
 - NFR-11: Archive and restore each run as a single transaction, so a group is never left half-archived.
 - NFR-8: Separate dev/test and prod environments. Nothing is deployed to prod without TPM sign-off.

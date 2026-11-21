@@ -52,7 +52,8 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | **Group** | A set of members who share lists with each other, such as a family. Groups persist indefinitely in v1 (B-010). | FR-1 |
 | **Group name** | The group's human-readable name, such as "Smith Family". | FR-2.1 |
 | **Group code** | A hard-to-guess code that lets someone join a group. | FR-1.1, NFR-3 |
-| **Invite link** | A URL with the group code built in, shared from inside a group using the phone's share menu or copy-to-clipboard. Opening it starts the join flow. | FR-1.2 |
+| **Invite link** | A URL with the group code built in, in the format `https://<app-host>/j/<GROUPCODE>`. It's shared from inside a group using the phone's share menu or copy-to-clipboard. Opening it starts the join flow with the code already filled in. Never sent through a third-party URL shortener. | FR-1.2, FR-1.10 |
+| **Short path (`/j/`)** | The app's own short URL prefix for invite links. It accepts the code with or without the dash, in any case. | FR-1.10 |
 | **Group request** | A visitor's request for a new group. It includes the group name they want, plus their own display name and PIN. The admin approves or declines it. | FR-1.2 |
 | **Waiting for approval** | The screen a requester sees while their request is pending. It checks back automatically. | FR-1.2 |
 | **Group switcher** | The UI control that lists every group this browser belongs to and moves between them. | FR-1.9 |
@@ -104,7 +105,7 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | **Waiting giver** | For a recipient, a joined member who isn't the recipient or the current claimer and hasn't claimed anything for that recipient yet. | FR-6.1 |
 | **Fair-share threshold** | A limit that's recalculated on every claim. A claim breaches it if, once the claim is made: **(a)** the available items number fewer than waiting givers × buffer, or **(b)** any waiting giver has no available item they're allowed to see. | FR-6.3 |
 | **Fair-share buffer** | The multiplier in rule (a). Defaults to 1.0, and the admin can change it. | FR-6.3 |
-| **Fair-share alert** | A warning shown before **every** claim that breaches the threshold, with **Claim anyway** or **Cancel**. It's a warning, not a block. | FR-6.4, Q29 |
+| **Fair-share alert** | A warning shown before **every** claim that breaches the threshold, with **Claim anyway** or **Cancel**. It's a warning, not a block, and it's **advisory**: near-simultaneous claims can occasionally skip it (NFR-9, B-012). | FR-6.4, Q29 |
 | **Fair-share nudge** | A banner on the claimer's Claimed list, for a recipient they're over the threshold for, suggesting they unclaim some items. | FR-6.5 |
 
 ## A7. Process and environments

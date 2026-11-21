@@ -65,5 +65,6 @@ Candidate features that are built and tested as their own scenario, with a test 
 5. The owner deletes items, which pushes a claimer over the threshold.
 6. Rapid repeated claims: the warning appears every time.
 7. Different buffer values (0.5, 1.0, 1.5).
+8. **Near-simultaneous claims:** two members claim different items for the same recipient at the same instant. Record how often a warning is skipped or misfires (NFR-9). If it matters, promote B-012.
 
 **Output:** The tuned threshold rule and default settings, written back into brief FR-6.

@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.2, awaiting TPM review |
+| **Status** | v1.0, approved by TPM |
 | **Last updated** | 2026-11-21 |
 | **Based on** | `PROJECT_BRIEF.md` v0.9, `GLOSSARY.md` rev 3 |
 | **Hosting constraint (TPM)** | Cloudflare, using the Free plan or the **Workers Paid** plan ($5 a month) |
-| **Revisions** | v0.1 first draft · v0.2 TPM decisions on A1, A2, A4 and A5 recorded; A3 advice added |
+| **Revisions** | v0.1 first draft · v0.2 TPM decisions on A1, A2, A4 and A5 recorded; A3 advice added · v1.0 A3 accepted (option 1, with the exact version in backlog B-012); `/j/` short path added (§6.10) |
 
 Cloudflare limits quoted here were checked against Cloudflare's docs on 2026-11-21 (sources in §12). Anything marked **[verify]** must be rechecked in the Cloudflare dashboard when the account is set up.
 
@@ -193,7 +193,14 @@ Steps 2 and 4 aren't in one transaction (AD-06), so a simultaneous claim by some
   - short links can be guessed or enumerated;
   - the code survives in the shortener after the group would have rotated it (B-002).
 
-  Instead, the app's **Invite people** button shares the full link through the phone's share menu, so length doesn't matter. If a short link is ever needed, we can add our own `/j/<code>` path to the app later.
+  Instead, the app's **Invite people** button shares the link through the phone's share menu.
+
+- **Rule: invite links use the app's own short path, `/j/<GROUPCODE>` (FR-1.10).**
+  - Format: `https://<app-host>/j/K7QM-4XTR`. The dash is optional and the code is case-insensitive. The code is normalised before lookup: uppercase, dash removed.
+  - Routing: the Worker serves the single-page app for `/j/*`. The app reads the code from the path and opens the join screen with it filled in. The code is sent to the API only when the user submits the join form, through `POST /api/join`, so simply opening a link doesn't use up a join attempt.
+  - An unknown code gives the same response as a wrong one, without revealing whether a group exists, and counts towards the rate limit.
+  - The code is never written to logs. The path is logged as `/j/<redacted>`.
+  - Third-party shorteners are **not** used for invite links. TinyURL and similar are fine for the app's home page only.
 
 ### 6.9 Observability
 - Workers Logs: structured JSON logs. **No PINs, tokens or full product URLs in logs.**
@@ -207,6 +214,7 @@ Every endpoint returns JSON. "M" means a member token is required for the group,
 
 | Method and path | Auth | Purpose | FR |
 |---|---|---|---|
+| `GET /j/:code` | — | Serves the app. The app opens the join screen with the code filled in (no API call until the user submits). | 1.10 |
 | `POST /api/join` | — | Join with a group code, display name and PIN, or claim a pending name | 1.3–1.4 |
 | `POST /api/recover` | — | Group code, display name and PIN → new token | 1.7 |
 | `GET /api/me` | cookies | List my groups (for the group switcher) | 1.9 |
@@ -266,8 +274,8 @@ Each of these will get its own file in `docs/DECISIONS/` once approved.
 | AD-03 | TypeScript, Hono, React + Vite, hand-written SQL, Vitest, Playwright | Proposed |
 | AD-04 | Admin sign-in via **Cloudflare Access**. Fallback: our own admin secret | **Accepted (A2)** |
 | AD-05 | PINs hashed with HMAC-SHA-256 and a secret pepper, not a slow hash | Proposed |
-| AD-06 | Fair-share check is advisory and not in the same transaction as the claim. The claim itself is atomic via a unique index. **This changes NFR-9's wording.** | Recommended. Awaiting TPM confirmation (A3) |
-| AD-10 | URLs: free `*.workers.dev` addresses for dev and for now. No custom domain. Invite links aren't shortened (see §6.10). | **Accepted (A4)** |
+| AD-06 | Fair-share check is advisory and not in the same transaction as the claim. The claim itself is atomic via a unique index. NFR-9 updated to match. Exact version (Durable Object per group) is in backlog B-012 and tested in PR-003. | **Accepted (A3)** |
+| AD-10 | URLs: free `*.workers.dev` addresses for dev and for now. No custom domain. Invite links use the app's own `/j/<code>` short path and are never sent through third-party shorteners (§6.10). | **Accepted (A4)** |
 | AD-11 | The TPM owns the Cloudflare account. The engineer deploys to dev. Prod deploys need the TPM's go-ahead each time. | **Accepted (A5)** |
 | AD-07 | Refresh with a lightweight version check, only while the tab is visible. No real-time connections in v1 | Proposed |
 | AD-08 | Auto-fill runs in a separate request after saving, with the safety limits in §6.7 | Proposed |
@@ -308,6 +316,6 @@ None of these have been granted. **I won't use any of them until you approve eac
 |---|---|---|
 | A1 | Which plan for prod (AD-02)? | **Decided:** Free for dev now. The TPM upgrades to Paid before prod. |
 | A2 | Admin sign-in (AD-04)? | **Decided:** Cloudflare Access |
-| A3 | Is the fair-share race acceptable (AD-06)? It means changing NFR-9 from "same transaction" to "checked at claim time, advisory". | Yes |
-| A4 | Custom domain, or `workers.dev` for v1? | **Decided:** `workers.dev`, using TinyURL for the home page if needed. Invite links aren't shortened (§6.10). |
+| A3 | Is the fair-share race acceptable (AD-06)? | **Decided:** yes, using the simplest free option. The exact version is backlog B-012, tested in PR-003. |
+| A4 | Custom domain, or `workers.dev` for v1? | **Decided:** `workers.dev`, using TinyURL for the home page if needed. Invite links use the `/j/` short path (§6.10). |
 | A5 | Who owns the Cloudflare account and deploys? | **Decided:** as recommended. |
