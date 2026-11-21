@@ -4,11 +4,10 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 
 | | |
 |---|---|
-| **Last updated** | 2026-11-21 (brief v0.8, glossary rev 2) |
-| **Status** | DRAFT, awaiting TPM review |
+| **Last updated** | 2026-11-21 (brief v0.8, glossary rev 3) |
+| **Status** | Reviewed by TPM. Part E decisions applied. |
 
 **Key:**
-- **(P)**: a value the engineer proposed that the TPM hasn't confirmed yet. Each is listed in [Part E](#part-e-open-points-for-review).
 - **FR-x / NFR-x**: the requirement in `PROJECT_BRIEF.md`.
 - **B-xxx**: an item in `BACKLOG.md`.
 - **PR-xxx**: an item in `PR_TRACKER.md`.
@@ -68,7 +67,7 @@ The project's shared vocabulary and field catalogue. Every term used in the brie
 | **Item** | One thing a member wants, such as "Camera". An item has one or more product links, depending on its mode. | FR-3 |
 | **Item mode** | How specific the owner wants the gift to be. Either **Exact product** or **Giver's choice**. | FR-3.1a |
 | ↳ **Exact product** | "Get me this specific product." Allows exactly **one** product link, which can be a URL or a description. | FR-3.1a |
-| ↳ **Giver's choice** | "Pick one you like. Here are some examples." Allows **several** reference links. | FR-3.1a |
+| ↳ **Giver's choice** | "Pick one you like. Here are some examples." Allows **up to 5** reference links. | FR-3.1a |
 | **Product link** | One URL or product description attached to an item, with product details that are filled in automatically or entered by hand. | FR-3.1a |
 | **Auto-fill** | The app reads a product link and pre-fills product details. The owner can edit anything it fills in. Saving the item never waits for auto-fill. The method and fields are being worked out in an experiment, PR-002. | FR-3.1b |
 | **Visibility** | Who can see an item: **Everyone** in the group, or **Only specific members**, chosen from the joined members. Members an item is hidden from see nothing of it, not even a placeholder. | FR-3.2, Q13 |
@@ -134,9 +133,10 @@ These are **logical** fields, meaning the information we need to capture, not th
 | Field | Type | Req'd | Set by | Visible to | Rules and notes | Ref |
 |---|---|---|---|---|---|---|
 | `group_id` | id | Yes | System | Internal | | |
-| `name` | text | Yes | Admin, or Requester through a request | Members, Admin | 1–60 characters **(P)**. | FR-2.1 |
-| `group_code` | text | Yes | System | Members, Admin | 8 characters from an alphabet without look-alike characters, shown as `XXXX-XXXX` **(P)**. Unique. Join attempts are rate-limited. | NFR-3 |
-| `fair_share_buffer` | decimal | Yes | Admin | Admin | Default 1.0. Set per group **(P)**. | FR-6.3 |
+| `name` | text | Yes | Admin, or Requester through a request | Members, Admin | 1–60 characters (G1). | FR-2.1 |
+| `group_code` | text | Yes | System | Members, Admin | 8 characters from an alphabet without look-alike characters, shown as `XXXX-XXXX` (G2). Unique. Join attempts are rate-limited. | NFR-3 |
+| `fair_share_buffer` | decimal | Yes | Admin | Admin | Default 1.0. Set per group. | FR-6.3, G3 |
+| `currency` | ISO 4217 code | Yes | Admin, or Requester through a request | Members, Admin | Chosen when the group is created. Used when auto-fill doesn't find a currency. | G9 |
 | `created_at` | timestamp | Yes | System | Admin | | |
 | `created_by` | ref → Admin or Group request | Yes | System | Admin | Shows whether the admin created the group directly or approved a request. | FR-1.2 |
 | `last_archived_at` | timestamp | No | System | Admin | Kept so auto-archive (B-011) can be applied retroactively later. | B-011 |
@@ -147,7 +147,7 @@ These are **logical** fields, meaning the information we need to capture, not th
 |---|---|---|---|---|---|---|
 | `member_id` | id | Yes | System | Internal | | |
 | `group_id` | ref → Group | Yes | System | Internal | | |
-| `display_name` | text | Yes | User, or Admin when adding | Members, Admin | 1–30 characters **(P)**. Unique within the group, ignoring upper and lower case. Leading and trailing spaces are removed. | Q12 |
+| `display_name` | text | Yes | User, or Admin when adding | Members, Admin | 1–30 characters (G4). Unique within the group, ignoring upper and lower case. Leading and trailing spaces are removed. | Q12 |
 | `status` | enum | Yes | System | Members, Admin | `pending` or `joined`. See C2. | FR-5.8 |
 | `pin_hash` | hash | Once joined | User (hashed by System) | **Never sent anywhere** | 4–6 digits before hashing, stored with a salt. Empty while pending, or after a PIN reset. | NFR-4 |
 | `failed_pin_attempts` | integer | Yes | System | Internal | Goes back to 0 after a successful recovery. | NFR-4 |
@@ -165,7 +165,7 @@ These are **logical** fields, meaning the information we need to capture, not th
 | `token_hash` | hash | Yes | System | **Never sent anywhere** | The browser holds the raw token in a cookie. The server stores only its hash. | FR-1.5 |
 | `member_id` | ref → Member | Yes | System | Internal | | |
 | `created_at` / `last_used_at` | timestamp | Yes | System | Internal | | |
-| `revoked_at` | timestamp | No | System | Internal | Set when the member is deleted, and **(P)** on a PIN reset. | FR-2.6 |
+| `revoked_at` | timestamp | No | System | Internal | Set when the member is deleted, and on a PIN reset, which signs the member out everywhere (G5). | FR-2.6 |
 
 ## B4. Group request
 
@@ -173,6 +173,7 @@ These are **logical** fields, meaning the information we need to capture, not th
 |---|---|---|---|---|---|---|
 | `request_id` | id | Yes | System | Internal | | |
 | `requested_group_name` | text | Yes | Requester | Admin, Requester | Same rules as the group's `name`. | FR-1.2 |
+| `requested_currency` | ISO 4217 code | Yes | Requester | Admin, Requester | Becomes the group's `currency` when the request is approved. | G9 |
 | `requester_display_name` | text | Yes | Requester | Admin, Requester | Same rules as `display_name`. | FR-1.2 |
 | `requester_pin_hash` | hash | Yes | Requester (hashed) | **Never sent anywhere** | Moved to the new member when the request is approved. | FR-1.2 |
 | `request_token_hash` | hash | Yes | System | **Never sent anywhere** | Lets the requester's browser check its status and move into the group automatically. | FR-1.2 |
@@ -186,9 +187,9 @@ These are **logical** fields, meaning the information we need to capture, not th
 |---|---|---|---|---|---|---|
 | `item_id` | id | Yes | System | Internal | | |
 | `owner_member_id` | ref → Member | Yes | System | Viewers of the item | The owner must be a joined member. | FR-5.8 |
-| `title` | text | Yes | User | Viewers of the item | 1–100 characters **(P)**, e.g. "Camera". | FR-3.1 |
+| `title` | text | Yes | User | Viewers of the item | 1–100 characters (G6), e.g. "Camera". | FR-3.1 |
 | `mode` | enum | Yes | User | Viewers of the item | `exact_product` or `givers_choice`. | FR-3.1a |
-| `notes` | text | No | User | Viewers of the item | Item-level notes, e.g. "any brand, under $300". Up to 500 characters **(P)**. | **(P)** |
+| `notes` | text | No | User | Viewers of the item | Item-level notes, e.g. "any brand, under $300". Up to 500 characters. | G7 |
 | `visibility` | enum | Yes | User | Owner | `everyone` or `specific_members`. Default `everyone`. | FR-3.2 |
 | `visible_to` | list of refs → Member | If `specific_members` | User | **Owner only** | At least one joined member, never the owner. Other viewers aren't told who else can see the item. | FR-3.2, Q13 |
 | `starred` | boolean | Yes | User | Viewers of the item | Default false. | FR-3.5 |
@@ -210,10 +211,10 @@ These are **logical** fields, meaning the information we need to capture, not th
 | `item_id` | ref → Item | Yes | System | Internal | | |
 | `position` | integer | Yes | System | Viewers of the item | The display order. | |
 | `url` | URL | Either `url` or `description` | User | Viewers of the item | Only `http` or `https` links. Up to 2,000 characters. | FR-3.1a |
-| `description` | text | Either `url` or `description` | User | Viewers of the item | For a product with no link. Up to 500 characters **(P)**. | FR-3.1a |
+| `description` | text | Either `url` or `description` | User | Viewers of the item | For a product with no link. Up to 500 characters (G11). | FR-3.1a |
 | `product_name` | text | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
 | `price` | decimal | No | Auto-fill, editable | Viewers of the item | | FR-3.1b |
-| `currency` | ISO 4217 code | If `price` is set | Auto-fill, editable | Viewers of the item | Defaults to the group's currency **(P)**. | FR-3.1b |
+| `currency` | ISO 4217 code | If `price` is set | Auto-fill, editable | Viewers of the item | Defaults to the group's `currency` (G9). | FR-3.1b |
 | `image_url` | URL | No | Auto-fill | Viewers of the item | | FR-3.1b |
 | `retailer` | text | No | Auto-fill | Viewers of the item | Taken from the link's domain. | FR-3.1b |
 | `size` | text | No | Auto-fill, editable | Viewers of the item | Matters more for some product categories, e.g. clothing. | FR-3.1b |
@@ -225,7 +226,7 @@ These are **logical** fields, meaning the information we need to capture, not th
 
 **Rules by item mode:**
 - **Exact product:** exactly **1** link, which has either a `url` or a `description`.
-- **Giver's choice:** 1 to 10 links **(P)**. Each link has a `url` or a `description`.
+- **Giver's choice:** 1 to **5** links (G8). Each link has a `url` or a `description`.
 
 The auto-fill experiment (PR-002) will confirm which detail fields matter for each product category.
 
@@ -240,7 +241,7 @@ The auto-fill experiment (PR-002) will confirm which detail fields matter for ea
 | `purchased` | boolean | Yes | Claimer | **Claimer only** | Default false. | FR-5.5, Q24 |
 | `purchased_at` | timestamp | No | System | Claimer only | | |
 | `claimed_at` | timestamp | Yes | System | Claimer | | |
-| `released_at` | timestamp | No | System | Internal | Kept for history **(P)**. | FR-5.4 |
+| `released_at` | timestamp | No | System | Internal | Kept for history, never shown (G10). | FR-5.4 |
 | `last_seen_item_version_at` | timestamp | Yes | System | Internal | When the updated flag was last cleared. The flag shows while this is earlier than the item's `content_updated_at`. | FR-5.7 |
 | `fair_share_override` | boolean | Yes | System | Internal | True if the claimer chose "Claim anyway". Used to tune fair share in PR-003. | FR-6.4 |
 
@@ -325,20 +326,22 @@ The server builds each response from this table. Nothing outside a viewer's colu
 
 ---
 
-# Part E: Open points for review
+# Part E: Decisions log
 
-These are the values marked **(P)** in Part B. Confirm each one or change it.
+The TPM confirmed these field-level decisions on 2026-11-21.
 
-| # | Point | Proposed |
+| # | Point | Decision |
 |---|---|---|
 | G1 | Maximum length of a group name | 60 characters |
 | G2 | Group code format | 8 characters without look-alike characters (no O/0 or I/1), shown as `XXXX-XXXX` |
-| G3 | Is the fair-share buffer set per group, or once for the whole app? | Per group, defaulting to 1.0 |
+| G3 | Fair-share buffer scope | Per group, defaulting to 1.0 |
 | G4 | Maximum length of a display name | 30 characters |
-| G5 | Does a PIN reset sign the member out on all their devices? | Yes |
+| G5 | PIN reset | Signs the member out on all their devices |
 | G6 | Maximum length of an item title | 100 characters |
-| G7 | Should items have their own notes, separate from each link's notes? | Yes, up to 500 characters |
-| G8 | Maximum number of links on a Giver's choice item | 10 |
-| G9 | Currency when auto-fill doesn't find one | One currency per group, set when the group is created **(new group field)** |
-| G10 | Keep a history of released (unclaimed) claims? | Yes, kept internally and never shown |
+| G7 | Item-level notes | Yes, up to 500 characters, separate from each link's notes |
+| G8 | Maximum links on a Giver's choice item | **5** (the TPM changed this from the proposed 10) |
+| G9 | Fallback currency | One currency per group, set when the group is created |
+| G10 | History of released claims | Kept internally and never shown |
 | G11 | Maximum length of a product description | 500 characters |
+
+New open points will be added here as G12 onwards.

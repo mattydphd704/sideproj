@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT v0.8, ready for TPM approval |
+| **Status** | DRAFT v0.9, ready for TPM approval |
 | **Last updated** | 2026-11-21 |
 | **Phase** | Outline (no architecture or code yet) |
 
@@ -17,6 +17,7 @@
 | v0.6 | Q15, Q16, Q18, Q26 resolved. Added the admin "expire lists" action and unlimited item stars. Nothing blocks architecture except TPM approval. |
 | v0.7 | Added fair-share alerts (FR-6). Replaced "expire lists" with soft delete, permanent delete and archive (FR-7). Groups and PINs persist. Auto-archive after 12 months. Q27 resolved. New questions Q28 to Q31. |
 | v0.8 | FR-6 marked as initial logic to be tuned in test (PR-003). The admin can restore archived lists using archive metadata. Q27 to Q30 resolved. Auto-archive (Q31) moved to the backlog (B-011). Created `BUGS.md`. |
+| v0.9 | Glossary field decisions G1 to G11 applied. Giver's choice items have up to 5 links. Each group has a currency. |
 
 ## 1. Problem
 
@@ -69,7 +70,7 @@ A web-hosted app where a group shares gift lists and coordinates who buys what. 
 - FR-3.1: Each member has **one ongoing list per group**, with no occasions or events. A member can add gift items to their own list. Each item includes a link to a specific product.
 - FR-3.1a: **Item mode.** When adding an item (e.g. "Camera"), the owner chooses:
   - **Exact product**: "Get me this specific product." Allows **one** product link *or* one product description.
-  - **Giver's choice**: "Pick one you like. Here are some examples." Allows **several** reference links.
+  - **Giver's choice**: "Pick one you like. Here are some examples." Allows **up to 5** reference links.
 - FR-3.1b: **Auto-fill.** When a link is added, the app fills in as many product details as it can, such as product name, price, size, colour and image. The owner can edit them. If auto-fill fails, the owner can still save the item and enter details by hand. *Scope is set by the PR-002 spike, and the field list is tracked in `GLOSSARY.md`.*
 - FR-3.2: For each item, the owner chooses its visibility: **everyone in the group**, or **only specific members**. Members an item is hidden from see **nothing** of it, not even a placeholder.
 - FR-3.3: A member can edit and delete their own items.
